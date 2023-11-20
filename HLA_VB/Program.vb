@@ -2,6 +2,9 @@ Imports System
 Imports System.Data
 Imports System.Diagnostics.Tracing
 Imports System.Reflection.Emit
+Imports System.Runtime.CompilerServices
+Imports HLA_VB.HLA_VB.Scanner
+
 Namespace HLA_VB
 
     Public Module Program
@@ -77,17 +80,37 @@ Namespace HLA_VB
             Private words(HIGHEST_MEMORY_ADDRESS) As MemoryLocation
         End Class
 
+        Public Enum TokenType
+            Keyword
+            Register
+            StringLiteral
+            IntegerLiteral
+            CharacterLiteral ' TODO: character literals not in specification
+            Identifier
+            Symbol
+            EndOfText
+        End Enum
+        Public Enum KeywordType
+            [IF]
+            [MEMORY]
+            [GOTO]
+            [DATA]
+            [END]
+        End Enum
+
+        Class Token
+            Public type As TokenType
+            Public k As KeywordType
+            Public s As String
+            Public i As Integer
+            Public r As Integer
+            Public c As Char
+            Public id As String
+            Public sym As String
+        End Class
+
         Class Scanner
-            Public Enum TokenType
-                Keyword
-                Register
-                StringLiteral
-                IntegerLiteral
-                CharacterLiteral ' TODO: character literals not in specification
-                Identifier
-                Symbol
-                EndOfText
-            End Enum
+
 
             Private text As String
             Private position As Integer = -1
@@ -99,13 +122,7 @@ Namespace HLA_VB
                                                             "GOTO", "GO", "BRANCH",
                                                             "DATA",
                                                             "END", "STOP", "HALT"}
-            Public Enum KeywordType
-                [IF]
-                [MEMORY]
-                [GOTO]
-                [DATA]
-                [END]
-            End Enum
+
             Private ReadOnly keywords As List(Of KeywordType) = New List(Of KeywordType) From
                                                             {KeywordType.IF,
                                                             KeywordType.MEMORY,
@@ -113,14 +130,7 @@ Namespace HLA_VB
                                                             KeywordType.DATA,
                                                             KeywordType.END, KeywordType.END, KeywordType.END}
 
-            Public type As TokenType
-            Public k As KeywordType
-            Public s As String
-            Public i As Integer
-            Public r As Integer
-            Public c As Char
-            Public id As String
-            Public sym As String
+            Public t As Token
 
             Sub New(onText As String)
                 text = onText
@@ -138,18 +148,19 @@ Namespace HLA_VB
             End Sub
 
             Sub NextToken()
+                t = New Token()
                 Do Until ch = EOT OrElse Not Char.IsWhiteSpace(ch)
                     NextCharacter()
                 Loop
                 If ch = EOT Then
-                    type = TokenType.EndOfText
+                    t.type = TokenType.EndOfText
                 ElseIf Char.IsDigit(ch) Then
-                    i = 0
+                    t.i = 0
                     Do
-                        i = i * 10 + Integer.Parse(ch)
+                        t.i = t.i * 10 + Integer.Parse(ch)
                         NextCharacter()
                     Loop Until Not Char.IsDigit(ch)
-                    type = TokenType.IntegerLiteral
+                    t.type = TokenType.IntegerLiteral
                 ElseIf Char.IsLetter(ch) Then
                     Dim identifier As String = ""
                     Do
@@ -157,50 +168,49 @@ Namespace HLA_VB
                         NextCharacter()
                     Loop Until Not Char.IsLetterOrDigit(ch)
                     If keywordStrings.Contains(identifier.ToUpper()) Then
-                        k = keywords(keywordStrings.IndexOf(identifier.ToUpper()))
-                        type = TokenType.Keyword
-                    ElseIf identifier.ToUpper()(0) = "R" AndAlso identifier.Length > 1 AndAlso Integer.TryParse(identifier.Substring(1), r) Then
-                        r = Integer.Parse(identifier.Substring(1)) ' strictly superfluous (see TryParse)
-                        type = TokenType.Register
+                        t.k = keywords(keywordStrings.IndexOf(identifier.ToUpper()))
+                        t.type = TokenType.Keyword
+                    ElseIf identifier.ToUpper()(0) = "R" AndAlso identifier.Length > 1 AndAlso Integer.TryParse(identifier.Substring(1), t.r) Then
+                        t.r = Integer.Parse(identifier.Substring(1)) ' strictly superfluous (see TryParse)
+                        t.type = TokenType.Register
                     Else
-                        id = identifier.ToUpper()
-                        type = TokenType.Identifier
+                        t.id = identifier.ToUpper()
+                        t.type = TokenType.Identifier
                     End If
                 ElseIf Char.IsPunctuation(ch) OrElse Char.IsSymbol(ch) Then
                     Select Case ch
                         Case ",", "#", "[", "]", "(", ")"
-                            sym = ch
-                            type = TokenType.Symbol
+                            t.sym = ch
+                            t.type = TokenType.Symbol
                             NextCharacter()
                         Case "+", "-"
-                            sym = ch
+                            t.sym = ch
                             NextCharacter()
                             If ch = "=" Then ' allow +=, -=
-                                sym += ch
+                                t.sym += ch
                                 NextCharacter()
                             End If
-                            type = TokenType.Symbol
+                            t.type = TokenType.Symbol
                         Case "!"
                             NextCharacter()
                             If ch = "=" Then
-                                sym = "<>"
-                                type = TokenType.Symbol
+                                t.sym = "<>"
+                                t.type = TokenType.Symbol
                                 NextCharacter()
                             Else
                                 Throw New Exception($"Unexpected NextToken symbol case for:{ch}")
                             End If
                         Case "<", ">"
-                            sym = ch
+                            t.sym = ch
                             NextCharacter()
-                            If ch = sym Or ch = "=" Then ' So <<, <=, >>, >=
-                                sym += ch
+                            If ch = t.sym Or ch = "=" Then ' So <<, <=, >>, >=
+                                t.sym += ch
                                 NextCharacter()
                             ElseIf ch = ">" Then
-                                sym = "<>"
-                                type = TokenType.Symbol
+                                t.sym = "<>"
                                 NextCharacter()
                             End If
-                            type = TokenType.Symbol
+                            t.type = TokenType.Symbol
                         Case Else
                             Throw New Exception($"Unexpected NextToken symbol case for:{ch}")
                     End Select
@@ -210,6 +220,17 @@ Namespace HLA_VB
             End Sub
 
         End Class
+
+        <Extension()>
+        Function Tokenise(source As String) As List(Of Token)
+            Dim result As New List(Of Token)
+            Dim s As New Scanner(source)
+            Do
+                s.NextToken()
+                result.Append(s.t)
+            Loop Until s.t.type = TokenType.EndOfText
+            Return result
+        End Function
 
         Sub Main(args As String())
             Console.WriteLine("Hello World!")
