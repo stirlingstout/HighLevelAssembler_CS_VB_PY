@@ -6,9 +6,11 @@ Imports System.Runtime.CompilerServices
 Imports HLA_VB.HLA_VB.Scanner
 
 Namespace HLA_VB
+    ' TODO: think about enumerations for symbols and/or operators
 
     Public Module Program
         Const HIGHEST_MEMORY_ADDRESS = 1024
+        Const HIGHEST_REGISTER_NUMBER = 15
 
         Public Class MemoryLocation
             Public Const MEMORY_LABEL_WIDTH = 10
@@ -62,22 +64,96 @@ Namespace HLA_VB
             End Function
         End Class
 
-        Class Instruction
+        MustInherit Class Instruction
             Inherits MemoryLocation
+
+            MustOverride Sub Execute(r As Registers, m As Memory)
         End Class
 
-        Class EmptyInstruction
-            ' TODO: not tested. Does it need to be?
+        MustInherit Class LoadStoreInstruction
             Inherits Instruction
-            ' Used to label empty lines. May not be needed since we can have multiple labels to a memory location
 
-            Public Overrides Function ToString() As String
-                Return MyBase.ToString()
-            End Function
+            Private Rd As Integer
+
+            Sub New(toFromRegister As Integer)
+                Rd = toFromRegister
+            End Sub
+        End Class
+
+        Class LoadInstructionDirect
+            Inherits LoadStoreInstruction
+
+            Private location As Integer
+            Private locationLabel As String
+
+            Sub New(toRegister As Integer, location As Integer)
+                MyBase.New(toRegister)
+                Me.location = location
+            End Sub
+
+            Sub New(toRegister As Integer, location As String)
+                MyBase.New(toRegister)
+                locationLabel = location
+            End Sub
+
+            Sub UpdateLocation(locationLabel As String, location As Integer)
+                If Me.locationLabel = locationLabel Then
+                    Me.location = location
+                Else
+                    ' TODO: decide what to do: use an assertion, throw an exception or do nothing? 
+                End If
+            End Sub
+
+            Public Overrides Sub Execute(r As Registers, m As Memory)
+                Throw New NotImplementedException()
+            End Sub
+        End Class
+
+        MustInherit Class ArithmeticLogicInstruction
+            Inherits Instruction
+
+
         End Class
 
         Class Memory
             Private words(HIGHEST_MEMORY_ADDRESS) As MemoryLocation
+
+            Sub New()
+                For i = 0 To HIGHEST_MEMORY_ADDRESS
+                    words(i) = New MemoryLocation()
+                Next
+            End Sub
+
+            ' TODO: not sure about this. Proably need 
+            Default Property ValueAt(address As Integer) As MemoryLocation
+                Get
+                    Debug.Assert(address >= 0 And address <= HIGHEST_MEMORY_ADDRESS, $"Invalid memory address: {address}")
+                    Return words(address)
+                End Get
+                Set(value As MemoryLocation)
+                    Debug.Assert(address >= 0 And address <= HIGHEST_REGISTER_NUMBER, $"Invalid register number: {address}")
+                    words(address) = value
+                End Set
+            End Property
+        End Class
+
+        Class Registers
+            Private registers(HIGHEST_REGISTER_NUMBER) As Integer
+
+            Sub New()
+
+            End Sub
+
+            Default Property At(r As Integer) As Integer
+                Get
+                    Debug.Assert(r >= 0 And r <= HIGHEST_REGISTER_NUMBER, $"Invalid register number: {r}")
+                    Return registers(r)
+                End Get
+                Set(value As Integer)
+                    Debug.Assert(r >= 0 And r <= HIGHEST_REGISTER_NUMBER, $"Invalid register number: {r}")
+                    registers(r) = value
+                End Set
+            End Property
         End Class
 
         Public Enum TokenType
@@ -90,6 +166,7 @@ Namespace HLA_VB
             Symbol
             EndOfText
         End Enum
+
         Public Enum KeywordType
             [IF]
             [MEMORY]
@@ -183,6 +260,13 @@ Namespace HLA_VB
                             t.sym = ch
                             t.type = TokenType.Symbol
                             NextCharacter()
+                        Case "="
+                            t.sym = ch
+                            t.type = TokenType.Symbol
+                            NextCharacter()
+                            If ch = "=" Then ' allows == to be 'translated' to =. Means that the assignments could get away with using  ==
+                                NextCharacter()
+                            End If
                         Case "+", "-"
                             t.sym = ch
                             NextCharacter()
@@ -206,7 +290,7 @@ Namespace HLA_VB
                             If ch = t.sym Or ch = "=" Then ' So <<, <=, >>, >=
                                 t.sym += ch
                                 NextCharacter()
-                            ElseIf ch = ">" Then
+                            ElseIf ch = ">" Then ' must be <> because this case is for < or > and >> would be picked up on previous if
                                 t.sym = "<>"
                                 NextCharacter()
                             End If
@@ -231,6 +315,22 @@ Namespace HLA_VB
             Loop Until s.t.type = TokenType.EndOfText
             Return result
         End Function
+
+        Function GetMenuOption() As String
+            DisplayMenu()
+            Console.Write("Enter option: ")
+            Return Console.ReadLine().ToUpper()
+        End Function
+
+        Sub DisplayMenu()
+            Console.WriteLine("L - (L)oad a HLA file")
+            Console.WriteLine("D - (D)isplay the HLA program")
+            Console.WriteLine("C - (C)ompile the current HLA program")
+            Console.WriteLine("E - (E)xecute the compiled program")
+            Console.WriteLine("N - create a (N)ew HLA program")
+            Console.WriteLine("H - display the (H)elp file")
+            Console.WriteLine("Q - (Q)uit the HLA program")
+        End Sub
 
         Sub Main(args As String())
             Console.WriteLine("Hello World!")
