@@ -222,12 +222,12 @@ Namespace HLA_VB
         End Class
 
         <Extension()>
-        Function Tokenise(source As String) As List(Of Token)
+        Function ToTokens(source As String) As List(Of Token)
             Dim result As New List(Of Token)
-            Dim s As New Scanner(source)
+            Dim s As New Scanner(If(source, ""))
             Do
                 s.NextToken()
-                result.Append(s.t)
+                result.Add(s.t)
             Loop Until s.t.type = TokenType.EndOfText
             Return result
         End Function

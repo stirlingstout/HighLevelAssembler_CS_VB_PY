@@ -1,6 +1,7 @@
 Imports Microsoft.VisualStudio.TestTools.UnitTesting
 Imports HLA_VB.HLA_VB
 Imports System.Data
+Imports System.Reflection.Metadata
 
 Namespace HLA_VB_Tests
 
@@ -242,7 +243,64 @@ Namespace HLA_VB_Tests
             s.NextToken()
             Assert.AreEqual(TokenType.EndOfText, s.t.type)
         End Sub
+    End Class
 
+    <TestClass>
+    Public Class TestToTokens
+
+        <TestMethod>
+        Sub TestToTokens0()
+            Dim l As New List(Of Token)
+            Dim source As String = Nothing
+            l = source.ToTokens()
+            Assert.AreEqual(1, l.Count)
+            Assert.AreEqual(TokenType.EndOfText, l(0).type)
+            l = "".ToTokens()
+            Assert.AreEqual(1, l.Count)
+            Assert.AreEqual(TokenType.EndOfText, l(0).type)
+        End Sub
+
+        <TestMethod>
+        Sub TestToTokens1()
+            Dim l As New List(Of Token)
+            l = "ADD R1,R2,R3".ToTokens()
+            Assert.AreEqual(7, l.Count) ' 7 because of the end of text token
+            Assert.AreEqual(TokenType.Identifier, l(0).type)
+            Assert.AreEqual("ADD", l(0).id)
+            Assert.AreEqual(TokenType.Register, l(1).type)
+            Assert.AreEqual(1, l(1).r)
+            Assert.AreEqual(TokenType.Symbol, l(2).type)
+            Assert.AreEqual(",", l(2).sym)
+            Assert.AreEqual(TokenType.Register, l(3).type)
+            Assert.AreEqual(2, l(3).r)
+            Assert.AreEqual(TokenType.Symbol, l(4).type)
+            Assert.AreEqual(",", l(4).sym)
+            Assert.AreEqual(TokenType.Register, l(5).type)
+            Assert.AreEqual(3, l(5).r)
+            Assert.AreEqual(TokenType.EndOfText, l(6).type)
+        End Sub
+
+        <TestMethod>
+        Sub TestToTokens2()
+            Dim l As New List(Of Token)
+            l = "ADD R14,R13,#27".ToTokens()
+            Assert.AreEqual(8, l.Count)
+            Assert.AreEqual(TokenType.Identifier, l(0).type)
+            Assert.AreEqual("ADD", l(0).id)
+            Assert.AreEqual(TokenType.Register, l(1).type)
+            Assert.AreEqual(14, l(1).r)
+            Assert.AreEqual(TokenType.Symbol, l(2).type)
+            Assert.AreEqual(",", l(2).sym)
+            Assert.AreEqual(TokenType.Register, l(3).type)
+            Assert.AreEqual(13, l(3).r)
+            Assert.AreEqual(TokenType.Symbol, l(4).type)
+            Assert.AreEqual(",", l(4).sym)
+            Assert.AreEqual(TokenType.Symbol, l(5).type)
+            Assert.AreEqual("#", l(5).sym)
+            Assert.AreEqual(TokenType.IntegerLiteral, l(6).type)
+            Assert.AreEqual(27, l(6).r)
+            Assert.AreEqual(TokenType.EndOfText, l(7).type)
+        End Sub
     End Class
 
 
