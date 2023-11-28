@@ -1,0 +1,16 @@
+R1 = 0
+again:
+R1 = R1 + 1
+R1 = R1 + 1
+R2 = R1 + R1
+IF R1 < 10 GOTO again
+MEM[A] = R1
+MEM[B] = R2
+R3 = R1 + R2
+MEM[C] = R3
+-- END -- Not having an END/HALT means executing data, i.e., a run-time error
+
+
+A: DATA
+B: DATA
+C: DATA
