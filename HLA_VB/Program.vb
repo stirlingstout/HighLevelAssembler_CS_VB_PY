@@ -654,12 +654,6 @@ Namespace HLA_VB
             Return result
         End Function
 
-        Function GetMenuOption() As String
-            DisplayMenu()
-            Console.Write("Enter option: ")
-            Return Console.ReadLine().ToUpper()
-        End Function
-
         Sub DisplayMenu()
             Console.WriteLine("L - (L)oad a HLA file")
             Console.WriteLine("D - (D)isplay the HLA program")
@@ -670,10 +664,15 @@ Namespace HLA_VB
             Console.WriteLine("Q - (Q)uit the HLA program")
         End Sub
 
+        Function GetMenuOption() As String
+            Console.Write("Enter option: ")
+            Return Console.ReadLine().ToUpper()
+        End Function
+
         Function LoadHLAFile(existingProgram As List(Of String)) As List(Of String)
             Console.Write("HLA filename: ")
             Dim Filename = Console.ReadLine().ToUpper()
-            If Filename.EndsWith(HLA_EXTENSION) Then
+            If Not Filename.EndsWith(HLA_EXTENSION) Then
                 Filename += HLA_EXTENSION
             End If
             Dim program = New List(Of String)
@@ -717,12 +716,14 @@ Namespace HLA_VB
         End Function
 
         Sub Main(args As String())
-            Dim program As List(Of String)
+            Dim program As New List(Of String)
             Do
                 DisplayMenu()
                 Select Case GetMenuOption()
                     Case "L"
+                        program = LoadHLAFile(program)
                     Case "D"
+                        DisplayHLA(program)
                     Case "C"
                     Case "E"
                     Case "N"
