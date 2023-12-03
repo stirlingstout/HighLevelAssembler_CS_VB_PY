@@ -16,14 +16,10 @@ Namespace HLA_VB_Tests
             m(100) = d
             Assert.IsTrue(TypeOf m(100) Is Data)
             Assert.AreEqual(27, m(100).GetValue())
-            Dim params() As Object = {r, m}
-            Try
-                d.Execute(r, m)
-                Assert.Fail("Managed to execute data")
-            Catch ex As Exception
-
-            End Try
-            ' Used Try Catch because couldn't get Assert.ThrowsException(Of AssertFailedException)(AddressOf d.Execute, "Managed to execute data", r, m) to compile
+            l.Execute(r, m)
+            Assert.AreEqual(27, r(0))
+            Assert.AreEqual(27, m(100).GetValue())
+            Assert.ThrowsException(Of DataException)(Sub() d.Execute(r, m))
         End Sub
 
         <TestMethod>

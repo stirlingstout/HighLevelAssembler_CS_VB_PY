@@ -1,4 +1,7 @@
-﻿Namespace HLA_VB
+﻿Imports System.ComponentModel.Design
+Imports System.Data
+
+Namespace HLA_VB
 
     Public Module Instructions
 
@@ -19,15 +22,27 @@
                 Next
             End Sub
 
+            Sub Clear()
+                For i = 0 To HIGHEST_MEMORY_ADDRESS
+                    words(i).Clear()
+                Next
+            End Sub
+
             ' TODO: not sure about this. Proably need 
             Default Property At(address As Integer) As MemoryLocation
                 Get
-                    Debug.Assert(address >= 0 And address <= HIGHEST_MEMORY_ADDRESS, $"Invalid memory address: {address}")
-                    Return words(address)
+                    If ValidAddress(address) Then
+                        Return words(address)
+                    Else
+                        Throw New IndexOutOfRangeException($"Invalid memory address: {address}")
+                    End If
                 End Get
                 Set(value As MemoryLocation)
-                    Debug.Assert(address >= 0 And address <= HIGHEST_MEMORY_ADDRESS, $"Invalid register number: {address}")
-                    words(address) = value
+                    If ValidAddress(address) Then
+                        words(address) = value
+                    Else
+                        Throw New IndexOutOfRangeException($"Invalid register number: {address}")
+                    End If
                 End Set
             End Property
         End Class
@@ -104,12 +119,20 @@
 
             Default Property At(r As Integer) As Integer
                 Get
-                    Debug.Assert(r >= 0 And r <= HIGHEST_REGISTER_NUMBER, $"Invalid register number: {r}")
-                    Return GP_Registers(r)
+                    If ValidRegister(r) Then
+                        Return GP_Registers(r)
+                    Else
+                        Throw New IndexOutOfRangeException($"Invalid register number: {r}")
+                    End If
                 End Get
                 Set(value As Integer)
-                    Debug.Assert(r >= 0 And r <= HIGHEST_REGISTER_NUMBER, $"Invalid register number: {r}")
-                    GP_Registers(r) = value
+                    If ValidRegister(r) Then
+
+                        GP_Registers(r) = value
+                    Else
+                        Throw New IndexOutOfRangeException($"Invalid register number {r}")
+                    End If
+
                 End Set
             End Property
         End Class
@@ -127,6 +150,10 @@
                 labels.Add(label)
             End Sub
 
+            Sub Clear()
+                labels.Clear()
+            End Sub
+
             Function HasLabel(label As String) As Boolean
                 Return labels.Contains(label)
             End Function
@@ -139,6 +166,12 @@
                 End If
             End Function
 
+            Overridable ReadOnly Property IsExecutable As Boolean
+                Get
+                    Return False
+                End Get
+            End Property
+
             Overridable Function GetValue() As Integer
                 Throw New Exception($"Attempt to get value of an instruction")
             End Function
@@ -148,11 +181,11 @@
             End Sub
 
             Overridable Sub Execute(r As Registers, m As Memory)
-                Throw New Exception($"Attempt to execute data as load/store instruction")
+                Throw New Exception($"Attempt to execute memory location as load/store instruction")
             End Sub
 
             Overridable Sub Execute(r As Registers)
-                Throw New Exception($"Attempt to execute data as arithmetic/logic instruction")
+                Throw New Exception($"Attempt to execute memory location as arithmetic/logic instruction")
             End Sub
         End Class
 
@@ -169,6 +202,11 @@
                 Me.value = value
             End Sub
 
+            Overloads Sub Clear()
+                MyBase.Clear()
+                value = 0
+            End Sub
+
             Overrides Function GetValue() As Integer
                 Return value
             End Function
@@ -180,6 +218,14 @@
             Public Overrides Function ToString() As String
                 Return $"{MyBase.ToString()}{value}"
             End Function
+
+            Overrides Sub Execute(r As Registers, m As Memory)
+                Throw New DataException($"Attempt to execute data as load/store instruction")
+            End Sub
+
+            Overrides Sub Execute(r As Registers)
+                Throw New DataException($"Attempt to execute data as arithmetic/logic instruction")
+            End Sub
         End Class
 
         MustInherit Class Instruction
@@ -191,6 +237,16 @@
 
             Public Overrides Sub Execute(r As Registers)
                 Throw New Exception($"Attempting to execute an abstract instruction")
+            End Sub
+
+            Public Overrides ReadOnly Property IsExecutable As Boolean
+                Get
+                    Return True
+                End Get
+            End Property
+
+            Overloads Sub Clear()
+                MyBase.Clear()
             End Sub
 
         End Class
@@ -205,16 +261,25 @@
             Protected locationLabel As String
 
             Sub New(toFromRegister As Integer, location As Integer)
-                Debug.Assert(ValidRegister(toFromRegister), $"Invalid register number {toFromRegister}")
-                Debug.Assert(ValidAddress(location))
-                Rd = toFromRegister
-                Me.location = location
+                If ValidRegister(toFromRegister) Then
+                    If ValidAddress(location) Then
+                        Rd = toFromRegister
+                        Me.location = location
+                    Else
+                        Throw New IndexOutOfRangeException($"Invalid register number {toFromRegister}")
+                    End If
+                Else
+                    Throw New IndexOutOfRangeException($"Invalid register number {toFromRegister}")
+                End If
             End Sub
 
             Sub New(toFromRegister As Integer, location As String)
-                Debug.Assert(ValidRegister(toFromRegister), $"Invalid register number {toFromRegister}")
-                Rd = toFromRegister
-                Me.locationLabel = location
+                If ValidRegister(toFromRegister) Then
+                    Rd = toFromRegister
+                    Me.locationLabel = location
+                Else
+                    Throw New IndexOutOfRangeException($"Invalid register number {toFromRegister}")
+                End If
             End Sub
         End Class
 
@@ -238,8 +303,11 @@
             End Sub
 
             Public Overrides Sub Execute(r As Registers, m As Memory)
-                Debug.Assert(TypeOf m(location) Is Data, "Attempt to load from a non-data location")
-                r(Rd) = m(location).GetValue()
+                If TypeOf m(location) Is Data Then
+                    r(Rd) = m(location).GetValue()
+                Else
+                    Throw New DataException("Attempt to load from a non-data location")
+                End If
             End Sub
         End Class
 
@@ -263,8 +331,11 @@
             End Sub
 
             Public Overrides Sub Execute(r As Registers, m As Memory)
-                Debug.Assert(TypeOf m(location) Is Data, "Attempt to load from a non-data location")
-                m(location).SetValue(r(Rd))
+                If TypeOf m(location) Is Data Then
+                    m(location).SetValue(r(Rd))
+                Else
+                    Throw New DataException("Attempt to load from a non-data location")
+                End If
             End Sub
         End Class
 #End Region
@@ -277,14 +348,25 @@
             Protected Rn As Integer
 
             Sub New(destinationRegister As Integer, firstOperandRegister As Integer)
-                Debug.Assert(ValidRegister(destinationRegister), $"Invalid destination register {destinationRegister} for arithmetic logic instruction")
-                Debug.Assert(ValidRegister(firstOperandRegister), $"Invalid first operand register {firstOperandRegister} for arithmetic logic instruction")
-                Rd = destinationRegister
-                Rn = firstOperandRegister
+                If ValidRegister(destinationRegister) Then
+                    If ValidRegister(firstOperandRegister) Then
+                        Rd = destinationRegister
+                        Rn = firstOperandRegister
+                    Else
+                        Throw New IndexOutOfRangeException($"Invalid first operand register {firstOperandRegister} for arithmetic logic instruction")
+                    End If
+                Else
+                    Throw New IndexOutOfRangeException($"Invalid destination register {destinationRegister} for arithmetic logic instruction")
+                End If
+
             End Sub
 
             Public Overrides Sub Execute(r As Registers)
                 Throw New Exception($"Attempting to execute an abstract instruction")
+            End Sub
+
+            Public Overrides Sub Execute(r As Registers, m As Memory)
+                Execute(r)  ' Arithmetic Logic instructions don't access memory
             End Sub
 
         End Class
@@ -296,8 +378,11 @@
 
             Sub New(destinationRegister As Integer, firstOperandRegister As Integer, secondOperandRegister As Integer)
                 MyBase.New(destinationRegister, firstOperandRegister)
-                Debug.Assert(ValidRegister(secondOperandRegister), $"Invalid second operand register {secondOperandRegister}")
-                Rm = secondOperandRegister
+                If ValidRegister(secondOperandRegister) Then
+                    Rm = secondOperandRegister
+                Else
+                    Throw New IndexOutOfRangeException($"Invalid second operand register {secondOperandRegister}")
+                End If
             End Sub
         End Class
 
@@ -489,8 +574,17 @@
 #End Region
 
 #Region "Odds and ends"
-        Class HALTInstruction
+
+        Class OddInstruction
             Inherits Instruction
+
+            Public Overrides Sub Execute(r As Registers, m As Memory)
+                Execute(r)
+            End Sub
+        End Class
+
+        Class HALTInstruction
+            Inherits OddInstruction
 
             Public Overrides Sub Execute(r As Registers)
                 r.Halted = True
@@ -498,16 +592,22 @@
         End Class
 
         Class MVNRegisterInstruction
-            Inherits Instruction
+            Inherits OddInstruction
 
             Private ReadOnly Rd As Integer
             Private ReadOnly Rm As Integer
 
             Sub New(Rd As Integer, Rm As Integer)
-                Debug.Assert(ValidRegister(Rd), $"Invalid register in constructor for MVN instruction: {Rd}")
-                Debug.Assert(ValidRegister(Rm), $"Invalid register in constructor for MVN instruction: {Rm}")
-                Me.Rd = Rd
-                Me.Rm = Rm
+                If ValidRegister(Rd) Then
+                    If ValidRegister(Rm) Then
+                        Me.Rd = Rd
+                        Me.Rm = Rm
+                    Else
+                        Throw New IndexOutOfRangeException($"Invalid register in constructor for MVN instruction {Rm}")
+                    End If
+                Else
+                    Throw New IndexOutOfRangeException($"Invalid register in constructor for MVN instruction {Rd}")
+                End If
             End Sub
 
             Public Overrides Sub Execute(r As Registers)
@@ -516,15 +616,18 @@
         End Class
 
         Class MVNImmediateInstruction
-            Inherits Instruction
+            Inherits OddInstruction
 
             Private ReadOnly Rd As Integer
             Private ReadOnly value As Integer
 
             Sub New(Rd As Integer, value As Integer)
-                Debug.Assert(ValidRegister(Rd), $"Invalid register in constructor for MVN instruction: {Rd}")
-                Me.Rd = Rd
-                Me.value = value
+                If ValidRegister(Rd) Then
+                    Me.Rd = Rd
+                    Me.value = value
+                Else
+                    Throw New IndexOutOfRangeException($"Invalid register in constructor for MVN instruction {Rd}")
+                End If
             End Sub
 
             Public Overrides Sub Execute(r As Registers)
@@ -533,16 +636,22 @@
         End Class
 
         Class CMPRegisterInstruction
-            Inherits Instruction
+            Inherits OddInstruction
 
             Private ReadOnly Rd As Integer
             Private ReadOnly Rm As Integer
 
             Sub New(Rd As Integer, Rm As Integer)
-                Debug.Assert(ValidRegister(Rd), $"Invalid register in constructor for CMP instruction: {Rd}")
-                Debug.Assert(ValidRegister(Rm), $"Invalid register in constructor for CMP instruction: {Rm}")
-                Me.Rd = Rd
-                Me.Rm = Rm
+                If ValidRegister(Rd) Then
+                    If ValidRegister(Rm) Then
+                        Me.Rd = Rd
+                        Me.Rm = Rm
+                    Else
+                        Throw New IndexOutOfRangeException($"Invalid register in constructor for CMP instruction {Rm}")
+                    End If
+                Else
+                    Throw New IndexOutOfRangeException($"Invalid register in constructor for CMP instruction {Rd}")
+                End If
             End Sub
 
             Public Overrides Sub Execute(r As Registers)
@@ -551,15 +660,18 @@
         End Class
 
         Class CMPImmediateInstruction
-            Inherits Instruction
+            Inherits OddInstruction
 
             Private ReadOnly Rd As Integer
             Private ReadOnly value As Integer
 
             Sub New(Rd As Integer, value As Integer)
-                Debug.Assert(ValidRegister(Rd), $"Invalid register in constructor for CMP instruction: {Rd}")
-                Me.Rd = Rd
-                Me.value = value
+                If ValidRegister(Rd) Then
+                    Me.Rd = Rd
+                    Me.value = value
+                Else
+                    Throw New IndexOutOfRangeException($"Invalid register in constructor for CMP instruction {Rd}")
+                End If
             End Sub
 
             Public Overrides Sub Execute(r As Registers)
@@ -595,6 +707,10 @@
                 Else
                     ' TODO: decide how to handle this
                 End If
+            End Sub
+
+            Public Overrides Sub Execute(r As Registers, m As Memory)
+                Execute(r)
             End Sub
         End Class
 

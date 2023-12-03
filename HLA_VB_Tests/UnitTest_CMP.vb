@@ -30,21 +30,12 @@ Namespace HLA_VB_Tests
             Assert.IsTrue(r.LT)
             Assert.IsFalse(r.GT)
 
-            Dim failed = False
-            Try
-                Dim e = New CMPRegisterInstruction(55, 0)
-            Catch ex As Exception
-                failed = True
-            End Try
-            Assert.IsTrue(failed, $"Managed to create an CMP instruction with invalid Rd={55}")
+            Assert.ThrowsException(Of IndexOutOfRangeException)(Function() New CMPRegisterInstruction(55, 0))
+        End Sub
 
-            failed = False
-            Try
-                Dim e = New CMPRegisterInstruction(0, 55)
-            Catch ex As Exception
-                failed = True
-            End Try
-            Assert.IsTrue(failed, $"Managed to create an CMP instruction with invalid Rm={55}")
+        <TestMethod>
+        Sub TestCMP0_1()
+            Assert.ThrowsException(Of IndexOutOfRangeException)(Function() New CMPRegisterInstruction(0, 55))
         End Sub
 
         <TestMethod>
@@ -62,13 +53,7 @@ Namespace HLA_VB_Tests
             Assert.AreEqual(1, r(1))
             Assert.AreEqual(0, r(0))
 
-            Dim failed = False
-            Try
-                Dim e = New CMPImmediateInstruction(55, 0)
-            Catch ex As Exception
-                failed = True
-            End Try
-            Assert.IsTrue(failed, $"Managed to create an CMP instruction with invalid Rd={55}")
+            Assert.ThrowsException(Of IndexOutOfRangeException)(Function() New CMPImmediateInstruction(55, 0))
         End Sub
     End Class
 End Namespace

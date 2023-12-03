@@ -1,7 +1,5 @@
 ﻿Imports Microsoft.VisualStudio.TestTools.UnitTesting
 Imports HLA_VB.HLA_VB
-Imports System.Data
-Imports System.Reflection.Metadata
 
 Namespace HLA_VB_Tests
     <TestClass>
@@ -13,20 +11,20 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestScanner0()
-                Dim s = New Scanner("")
+                Dim s = New Scanner.Scanner("")
                 s.NextToken()
                 Assert.AreEqual(TokenType.EndOfText, s.t.type)
             End Sub
 
             <TestMethod>
             Sub TestScanner1()
-                Dim s = New Scanner("!")
+                Dim s = New Scanner.Scanner("!")
                 Assert.ThrowsException(Of System.Exception)(AddressOf s.NextToken, "Unexpected NextToken symbol case for:!")
             End Sub
 
             <TestMethod>
             Sub TestScanner2()
-                Dim s = New Scanner("123")
+                Dim s = New Scanner.Scanner("123")
                 s.NextToken()
                 Assert.AreEqual(TokenType.IntegerLiteral, s.t.type)
                 Assert.AreEqual(123, s.t.i)
@@ -36,7 +34,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestScanner3()
-                Dim s = New Scanner("0")
+                Dim s = New Scanner.Scanner("0")
                 s.NextToken()
                 Assert.AreEqual(TokenType.IntegerLiteral, s.t.type)
                 Assert.AreEqual(0, s.t.i)
@@ -46,7 +44,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestScanner4()
-                Dim s = New Scanner("Start")
+                Dim s = New Scanner.Scanner("Start")
                 s.NextToken()
                 Assert.AreEqual(TokenType.Identifier, s.t.type)
                 Assert.AreEqual("START", s.t.id)
@@ -56,7 +54,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestScanner4_1()
-                Dim s = New Scanner("R1 R")
+                Dim s = New Scanner.Scanner("R1 R")
                 s.NextToken()
                 Assert.AreEqual(TokenType.Register, s.t.type)
                 Assert.AreEqual(1, s.t.r)
@@ -69,7 +67,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestScanner5()
-                Dim s = New Scanner("123Start")
+                Dim s = New Scanner.Scanner("123Start")
                 s.NextToken()
                 Assert.AreEqual(TokenType.IntegerLiteral, s.t.type)
                 Assert.AreEqual(123, s.t.i)
@@ -82,7 +80,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestScanner6()
-                Dim s = New Scanner("   123Start   ")
+                Dim s = New Scanner.Scanner("   123Start   ")
                 s.NextToken()
                 Assert.AreEqual(TokenType.IntegerLiteral, s.t.type)
                 Assert.AreEqual(123, s.t.i)
@@ -95,7 +93,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestScanner7()
-                Dim s = New Scanner("   123Start  END ")
+                Dim s = New Scanner.Scanner("   123Start  END ")
                 s.NextToken()
                 Assert.AreEqual(s.t.type, TokenType.IntegerLiteral)
                 Assert.AreEqual(123, s.t.i)
@@ -111,7 +109,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestScanner8() ' single characters
-                Dim s = New Scanner("   ,#[]()")
+                Dim s = New Scanner.Scanner("   ,#[]()")
                 s.NextToken()
                 Assert.AreEqual(s.t.type, TokenType.Symbol)
                 Assert.AreEqual(",", s.t.sym)
@@ -136,7 +134,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestScanner9() ' operators and compound operators
-                Dim s = New Scanner("   + - += -= != < << > >> <> ")
+                Dim s = New Scanner.Scanner("   + - += -= != < << > >> <> ")
                 s.NextToken()
                 Assert.AreEqual(s.t.type, TokenType.Symbol)
                 Assert.AreEqual("+", s.t.sym)
@@ -177,7 +175,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestToTokens0()
-                Dim l As New List(Of Token)
+                Dim l As List(Of Token)
                 Dim source As String = Nothing
                 l = source.ToTokens()
                 Assert.AreEqual(1, l.Count)
@@ -189,7 +187,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestToTokens1()
-                Dim l As New List(Of Token)
+                Dim l As List(Of Token)
                 l = "ADD R1,R2,R3".ToTokens()
                 Assert.AreEqual(7, l.Count) ' 7 because of the end of text token
                 Assert.AreEqual(TokenType.Identifier, l(0).type)
@@ -209,7 +207,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestToTokens2()
-                Dim l As New List(Of Token)
+                Dim l As List(Of Token)
                 l = "ADD R14,R13,#27".ToTokens()
                 Assert.AreEqual(8, l.Count)
                 Assert.AreEqual(TokenType.Identifier, l(0).type)
@@ -231,7 +229,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestToTokens3()
-                Dim l As New List(Of Token)
+                Dim l As List(Of Token)
                 l = "goto Start".ToTokens()
                 Assert.AreEqual(3, l.Count)
                 Assert.AreEqual(TokenType.Keyword, l(0).type)
@@ -243,8 +241,8 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestToTokens4()
-                Dim l As New List(Of Token)
-                l = "IF R1=R2 GO ENDofProgram".ToTokens()
+                Dim l As List(Of Token)
+                l = "IF R1=R2 GOTO ENDofProgram".ToTokens()
                 Assert.AreEqual(7, l.Count)
                 Assert.AreEqual(TokenType.Keyword, l(0).type)
                 Assert.AreEqual(KeywordType.IF, l(0).k)
@@ -263,8 +261,8 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestToTokens8()
-                Dim l As New List(Of Token)
-                l = "IF R1<>R2 GO Again".ToTokens()
+                Dim l As List(Of Token)
+                l = "IF R1<>R2 GOTO Again".ToTokens()
                 Assert.AreEqual(7, l.Count)
                 Assert.AreEqual(TokenType.Keyword, l(0).type)
                 Assert.AreEqual(KeywordType.IF, l(0).k)
@@ -283,8 +281,8 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestToTokens9()
-                Dim l As New List(Of Token)
-                l = "IF R1!=R2 GO Again".ToTokens() ' != returned as <>
+                Dim l As List(Of Token)
+                l = "IF R1!=R2 GOTO Again".ToTokens() ' != returned as <>
                 Assert.AreEqual(7, l.Count)
                 Assert.AreEqual(TokenType.Keyword, l(0).type)
                 Assert.AreEqual(KeywordType.IF, l(0).k)
@@ -303,7 +301,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestToTokens10()
-                Dim l As New List(Of Token)
+                Dim l As List(Of Token)
                 l = "R0 = R2 << 4".ToTokens()
                 Assert.AreEqual(6, l.Count)
                 Assert.AreEqual(TokenType.Register, l(0).type)
@@ -321,7 +319,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestToTokens11()
-                Dim l As New List(Of Token)
+                Dim l As List(Of Token)
                 l = "R0 = R2 >> 4".ToTokens()
                 Assert.AreEqual(6, l.Count)
                 Assert.AreEqual(TokenType.Register, l(0).type)
@@ -339,8 +337,8 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestToTokens12()
-                Dim l As New List(Of Token)
-                l = "IF R1>R2 GO Again".ToTokens()
+                Dim l As List(Of Token)
+                l = "IF R1>R2 GOTO Again".ToTokens()
                 Assert.AreEqual(7, l.Count)
                 Assert.AreEqual(TokenType.Keyword, l(0).type)
                 Assert.AreEqual(KeywordType.IF, l(0).k)
@@ -359,8 +357,8 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestToTokens13()
-                Dim l As New List(Of Token)
-                l = "IF R1<R2 GO Again".ToTokens()
+                Dim l As List(Of Token)
+                l = "IF R1<R2 GOTO Again".ToTokens()
                 Assert.AreEqual(7, l.Count)
                 Assert.AreEqual(TokenType.Keyword, l(0).type)
                 Assert.AreEqual(KeywordType.IF, l(0).k)
@@ -379,7 +377,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestToTokens14()
-                Dim l As New List(Of Token)
+                Dim l As List(Of Token)
                 l = "R1 += 26".ToTokens()
                 Assert.AreEqual(4, l.Count)
                 Assert.AreEqual(TokenType.Register, l(0).type)
@@ -393,7 +391,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestToTokens15()
-                Dim l As New List(Of Token)
+                Dim l As List(Of Token)
                 l = "R1 -= 26".ToTokens()
                 Assert.AreEqual(4, l.Count)
                 Assert.AreEqual(TokenType.Register, l(0).type)
@@ -407,7 +405,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestToTokens16()
-                Dim l As New List(Of Token)
+                Dim l As List(Of Token)
                 l = "R10 = r15 - 26".ToTokens()
                 Assert.AreEqual(6, l.Count)
                 Assert.AreEqual(TokenType.Register, l(0).type)
@@ -425,7 +423,7 @@ Namespace HLA_VB_Tests
 
             <TestMethod>
             Sub TestToTokens17()
-                Dim l As New List(Of Token)
+                Dim l As List(Of Token)
                 l = "R10 = r15 + 26".ToTokens()
                 Assert.AreEqual(6, l.Count)
                 Assert.AreEqual(TokenType.Register, l(0).type)

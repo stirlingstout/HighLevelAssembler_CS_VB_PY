@@ -69,6 +69,8 @@
         public static Dictionary<string, string> relationalOperators = new() {
                                             {EQUAL_OPERATOR,"BEQ" }, {NOT_EQUAL_OPERATOR, "BNE" }, {LESS_THAN_OPERATOR, "BLT" },
                                             {GREATER_THAN_OPERATOR, "BGT" } };
+        internal static readonly string[] gotoAlternatives = [ "GOTO", "GO", "BRANCH" ];
+
         static void Main()
         {
             static void SetupConsole()
@@ -178,7 +180,7 @@
             {
                 Filename += HLA_EXTENSION;
             }
-            List<string> program = new();
+            List<string> program = [];
             if (File.Exists(Filename))
             {
                 using StreamReader HLA = new(Filename);
@@ -236,9 +238,9 @@
             //      label a location in memory for data.    
             //      Executing it gives a run-time error
 
-            AssembledCode Assembly = new();
+            AssembledCode Assembly = [];
             int PC = 0;
-            ErrorList Errors = new();
+            ErrorList Errors = [];
 
             foreach (string line in Program)
             {
@@ -262,7 +264,7 @@
                 // Project Oberon is not to be confused with the UK satellite project proposed in 2018.
 
 
-                List<string> keywords = new() { "IF", MEMORY, GOTO, "GO", "BRANCH", "DATA", END, "STOP", "HALT" };
+                List<string> keywords = ["IF", MEMORY, GOTO, "GO", "BRANCH", "DATA", END, "STOP", "HALT"];
 
                 List<Token> Tokenise(IEnumerable<char> line, List<Token> soFar)
                 {
@@ -285,7 +287,7 @@
                         else { return TokenType.Symbol; }
                     }
 
-                    if (line.Count() == 0)
+                    if (!line.Any())
                     {
                         return soFar.TakeWhile(s => s.text != COMMENT).ToList();
                     }
@@ -324,7 +326,7 @@
                     else
                     {
                         Debug.Fail("Tokenise does not cover all possible classes");
-                        return soFar.ToList();
+                        return [.. soFar];
                     }
                 }
 
@@ -444,11 +446,11 @@
                                         // see the case 4: branch for NOT handling
                                         if (token(2).type == TokenType.Register)
                                         {
-                                            if (arithmeticLogicOperators.ContainsKey(token(3).text))
+                                            if (arithmeticLogicOperators.TryGetValue(token(3).text, out opcode))
                                             {
                                                 Rn = token(2).intOrRegisterNumber;
                                                 Debug.Assert(Rn.HasValue);
-                                                opcode = arithmeticLogicOperators[token(3).text];
+                                                Debug.Assert(opcode == arithmeticLogicOperators[token(3).text]); // Used to check TryGetValue refactoring works
                                                 (operand, immediate, Rm, Errors, operandType) = Operand2(token(4), Errors, line);
                                                 switch (operandType)
                                                 {
@@ -540,11 +542,12 @@
                                     //  0  1  2       3          4    5          B<relop> <label>
                                     if (tokens.Count() == 6)
                                     {
-                                        if (token(4).type == TokenType.Keyword && (new string[] { "GOTO", "GO", "BRANCH" }).Contains(token(4).text))
+                                        if (token(4).type == TokenType.Keyword && (gotoAlternatives).Contains(token(4).text))
                                         {
-                                            if (token(2).type == TokenType.Symbol && relationalOperators.ContainsKey(token(2).text))
+                                            
+                                            if (token(2).type == TokenType.Symbol && relationalOperators.TryGetValue(token(2).text, out opcode))
                                             {
-                                                opcode = relationalOperators[token(2).text];
+                                                Debug.Assert(opcode == relationalOperators[token(2).text]);
                                                 (operand, immediate, Rm, Errors, operandType) = Operand2(token(3), Errors, line);
                                                 switch (operandType)
                                                 {
@@ -696,7 +699,7 @@
         static AssembledCode Patchup(AssembledCode Assembly, ErrorList Errors)
         {
             // TODO: see if there's a simpler way to do this. Make the address / destination read / write?
-            AssembledCode result = new();
+            AssembledCode result = [];
             foreach ((string label, int PC, Instruction code) in Assembly)
             {
                 if (code is MemoryReferenceInstruction mri)
@@ -767,7 +770,7 @@
         {
             // TODO: think about a constant for "R" so could be changed to REGISTER
             // TODO: Range checking on register numbers?
-            if (RegisterRef.StartsWith("R") && RegisterRef[1..].All(c => Char.IsDigit(c)))
+            if (RegisterRef.StartsWith('R') && RegisterRef[1..].All(c => Char.IsDigit(c)))
             {
                 return true;
             }
@@ -784,7 +787,7 @@
                 var position = 0;
                 while (position < inList.Count)
                 {
-                    if (s.IndexOf(inList[position], StringComparison.CurrentCultureIgnoreCase) >= 0)
+                    if (s.Contains(inList[position], StringComparison.CurrentCultureIgnoreCase))
                     {
                         return position;
                     }
@@ -825,7 +828,7 @@
             int? PC = 0;
             var Running = true;
             var ErrorMessage = "";
-            bool[] Status = { false, false }; //  EQ, GT flags
+            bool[] Status = [false, false]; //  EQ, GT flags
             while (Running && ErrorMessage == "" && PC.HasValue && PC < Assembly.Count)
             {
                 // Fetch
@@ -925,7 +928,7 @@
         {
             Console.WriteLine("Enter your program line by line. Just press Enter to finish");
             var lineNumber = 1;
-            SourceCode Program = new();
+            SourceCode Program = [];
             do
             {
                 string? line;
@@ -934,7 +937,7 @@
                 if (line != "")
                 {
                     Debug.Assert(line != null);
-                    Program = Program.Append(line).ToList();
+                    Program = [.. Program, line];
                     lineNumber += 1;
                 }
                 else

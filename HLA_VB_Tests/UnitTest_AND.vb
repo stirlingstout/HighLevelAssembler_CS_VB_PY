@@ -23,27 +23,12 @@ Namespace HLA_VB_Tests
             Assert.AreEqual(240, r(0))
             Assert.AreEqual(245, r(1))
             Assert.AreEqual(240, r(2))
+
             Const invalidRegister = 55
-            Try
-                Dim a = New ANDRegisterInstruction(invalidRegister, 0, 1)
-                Assert.Fail($"Managed to create a ANDRegisterInstruction with an invalid Rd = {invalidRegister}")
-            Catch ex As Exception
+            Assert.ThrowsException(Of IndexOutOfRangeException)(Function() New ANDRegisterInstruction(invalidRegister, 0, 1))
+            Assert.ThrowsException(Of IndexOutOfRangeException)(Function() New ANDRegisterInstruction(0, invalidRegister, 1))
+            Assert.ThrowsException(Of IndexOutOfRangeException)(Function() New ANDRegisterInstruction(0, 1, invalidRegister))
 
-            End Try
-
-            Try
-                Dim a = New ANDRegisterInstruction(0, invalidRegister, 1)
-                Assert.Fail($"Managed to create a ANDRegisterInstruction with an invalid Rn = {invalidRegister}")
-            Catch ex As Exception
-
-            End Try
-
-            Try
-                Dim a = New ANDRegisterInstruction(0, 1, invalidRegister)
-                Assert.Fail($"Managed to create a ANDRegisterInstruction with an invalid Rm = {invalidRegister}")
-            Catch ex As Exception
-
-            End Try
         End Sub
 
         <TestMethod>
@@ -66,20 +51,13 @@ Namespace HLA_VB_Tests
             Assert.AreEqual(249, r(1))
 
             Const invalidRegister = 55
-            Try
-                Dim a = New ANDImmediateInstruction(invalidRegister, 0, 1)
-                Assert.Fail($"Managed to create an ANDRegisterInstruction with an invalid Rd = {invalidRegister}")
-            Catch ex As Exception
+            Assert.ThrowsException(Of IndexOutOfRangeException)(Function() New ANDImmediateInstruction(invalidRegister, 0, 1))
+        End Sub
 
-            End Try
-
-            Try
-                Dim a = New ANDImmediateInstruction(0, invalidRegister, 1)
-                Assert.Fail($"Managed to create an ANDImmediateInstruction with an invalid Rn = {invalidRegister}")
-            Catch ex As Exception
-
-            End Try
-
+        <TestMethod>
+        Sub TestAnd2()
+            Const invalidRegister = 55
+            Assert.ThrowsException(Of IndexOutOfRangeException)(Function() New ANDImmediateInstruction(0, invalidRegister, 1))
         End Sub
     End Class
 End Namespace

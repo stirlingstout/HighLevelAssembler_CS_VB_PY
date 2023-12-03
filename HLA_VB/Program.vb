@@ -5,6 +5,8 @@ Imports System.IO
 Imports System.Net.NetworkInformation
 Imports System.Reflection.Emit
 Imports System.Runtime.CompilerServices
+Imports System.Threading
+Imports System.Xml.Schema
 
 Namespace HLA_VB
     ' TODO: think about enumerations for symbols and/or operators
@@ -16,164 +18,6 @@ Namespace HLA_VB
         Public Const HIGHEST_REGISTER_NUMBER = 15
         Public Const REGISTER_SIZE = 32
 
-        Public Enum TokenType
-            Keyword
-            Register
-            StringLiteral
-            IntegerLiteral
-            CharacterLiteral ' TODO: character literals not in specification
-            Identifier
-            Symbol
-            EndOfText
-        End Enum
-
-        Public Enum KeywordType
-            [IF]
-            [MEMORY]
-            [GOTO]
-            [DATA]
-            [END]
-        End Enum
-
-        Class Token
-            Public type As TokenType
-            Public k As KeywordType
-            Public s As String
-            Public i As Integer
-            Public r As Integer
-            Public c As Char
-            Public id As String
-            Public sym As String
-        End Class
-
-        Class Scanner
-
-            Private ReadOnly text As String
-            Private position As Integer = -1
-            Private ch As Char
-            Private Const EOT = Chr(0)
-            Private ReadOnly keywordStrings = New List(Of String)() From
-                                                    {"IF",
-                                                    "MEMORY",
-                                                    "GOTO", "GO", "BRANCH",
-                                                    "DATA",
-                                                    "END", "STOP", "HALT"}
-
-            Private ReadOnly keywords = New List(Of KeywordType) From
-                                                    {KeywordType.IF,
-                                                    KeywordType.MEMORY,
-                                                    KeywordType.GOTO, KeywordType.GOTO, KeywordType.GOTO,
-                                                    KeywordType.DATA,
-                                                    KeywordType.END, KeywordType.END, KeywordType.END}
-
-            Public t As Token
-
-            Sub New(onText As String)
-                text = onText
-                position = 0
-                NextCharacter()
-            End Sub
-
-            Private Sub NextCharacter()
-                If position < text.Length Then
-                    ch = text(position)
-                    position += 1
-                Else
-                    ch = EOT
-                End If
-            End Sub
-
-            Sub NextToken()
-                t = New Token()
-                Do Until ch = EOT OrElse Not Char.IsWhiteSpace(ch)
-                    NextCharacter()
-                Loop
-                If ch = EOT Then
-                    t.type = TokenType.EndOfText
-                ElseIf Char.IsDigit(ch) Then
-                    t.i = 0
-                    Do
-                        t.i = t.i * 10 + Integer.Parse(ch)
-                        NextCharacter()
-                    Loop Until Not Char.IsDigit(ch)
-                    t.type = TokenType.IntegerLiteral
-                ElseIf Char.IsLetter(ch) Then
-                    Dim identifier As String = ""
-                    Do
-                        identifier += ch
-                        NextCharacter()
-                    Loop Until Not Char.IsLetterOrDigit(ch)
-                    If keywordStrings.Contains(identifier.ToUpper()) Then
-                        t.k = keywords(keywordStrings.IndexOf(identifier.ToUpper()))
-                        t.type = TokenType.Keyword
-                    ElseIf identifier.ToUpper()(0) = "R" AndAlso identifier.Length > 1 AndAlso Integer.TryParse(identifier.Substring(1).AsSpan(), t.r) Then
-                        t.r = Integer.Parse(identifier.Substring(1)) ' strictly superfluous (see TryParse)
-                        t.type = TokenType.Register
-                    Else
-                        t.id = identifier.ToUpper()
-                        t.type = TokenType.Identifier
-                    End If
-                ElseIf Char.IsPunctuation(ch) OrElse Char.IsSymbol(ch) Then
-                    Select Case ch
-                        Case ",", "#", "[", "]", "(", ")"
-                            t.sym = ch
-                            t.type = TokenType.Symbol
-                            NextCharacter()
-                        Case "="
-                            t.sym = ch
-                            t.type = TokenType.Symbol
-                            NextCharacter()
-                            If ch = "=" Then ' allows == to be 'translated' to =. Means that the assignments could get away with using  ==
-                                NextCharacter()
-                            End If
-                        Case "+", "-"
-                            t.sym = ch
-                            NextCharacter()
-                            If ch = "=" Then ' allow +=, -=
-                                t.sym += ch
-                                NextCharacter()
-                            End If
-                            t.type = TokenType.Symbol
-                        Case "!"
-                            NextCharacter()
-                            If ch = "=" Then
-                                t.sym = "<>"
-                                t.type = TokenType.Symbol
-                                NextCharacter()
-                            Else
-                                Throw New Exception($"Unexpected NextToken symbol case for:{ch}")
-                            End If
-                        Case "<", ">"
-                            t.sym = ch
-                            NextCharacter()
-                            If ch = t.sym Or ch = "=" Then ' So <<, <=, >>, >=
-                                t.sym += ch
-                                NextCharacter()
-                            ElseIf ch = ">" Then ' must be <> because this case is for < or > and >> would be picked up on previous if
-                                t.sym = "<>"
-                                NextCharacter()
-                            End If
-                            t.type = TokenType.Symbol
-                        Case Else
-                            Throw New Exception($"Unexpected NextToken symbol case for:{ch}")
-                    End Select
-                Else
-                    Throw New Exception($"Unexpected NextToken case for:{ch}")
-                End If
-            End Sub
-
-        End Class
-
-        <Extension()>
-        Function ToTokens(source As String) As List(Of Token)
-            Dim result As New List(Of Token)
-            Dim s As New Scanner(If(source, ""))
-            Do
-                s.NextToken()
-                result.Add(s.t)
-            Loop Until s.t.type = TokenType.EndOfText
-            Return result
-        End Function
 
         Sub DisplayMenu()
             Console.WriteLine("L - (L)oad a HLA file")
@@ -236,8 +80,88 @@ Namespace HLA_VB
             Return Program
         End Function
 
+        Sub DisplayHelp()
+            Const HELP_FILENAME = "HLA.hlp"
+            If File.Exists(HELP_FILENAME) Then
+                Try
+                    Process.Start("NOTEPAD.EXE", HELP_FILENAME)
+                Catch
+                    Console.WriteLine($"Could not start NOTEPAD or find the help file ({HELP_FILENAME})")
+                End Try
+            End If
+
+        End Sub
+
+        Function AddRegister(t As List(Of Token)) As List(Of MemoryLocation)
+
+        End Function
+
+
+        Function AddImmediate(t As List(Of Token)) As List(Of MemoryLocation)
+
+        End Function
+
+        Function CompileHLA(program As List(Of String)) As (assembly As Memory, registers As Registers, errorList As List(Of String))
+            Dim m As New Memory()
+            Dim r As New Registers()
+            Dim errors As New List(Of String)
+
+            Dim patterns As New List(Of (List(Of Token), Func(Of List(Of Token), List(Of MemoryLocation)))) From
+            {("R0 = R1 + R2".ToTokens(), AddressOf AddRegister),
+            ("R0 = R1 + 25".ToTokens(), AddressOf AddImmediate)}
+
+            r.PC = 0
+            For Each line In program
+                Dim s As IEnumerable(Of Token) = line.ToTokens()
+                Dim labels As New List(Of String)
+                Do While s.Count >= 2
+                    If s.First().type = TokenType.Identifier AndAlso s(1).type = TokenType.Symbol AndAlso s(1).sym = ":" Then
+                        labels.Add(s.First().id)
+                        s = s.Skip(2)
+                    Else
+                        Exit Do
+                    End If
+                Loop
+
+            Next
+        End Function
+
+        Sub DisplayErrors(program As List(Of String), errorList As List(Of String))
+            For Each errorMessage In errorList
+                Console.WriteLine(program.Count)
+            Next
+        End Sub
+
+        Sub DisplayAssembly(m As Memory)
+            Debug.Assert(m IsNot Nothing)
+        End Sub
+
+        Sub ExecuteProgram(m As Memory, r As Registers)
+            Do While Not (r.Halted)
+                Dim MAR As Integer
+                Dim MBR As MemoryLocation
+                Dim CIR As MemoryLocation
+
+                MAR = r.PC
+                MBR = m(MAR)
+                r.PC += 1
+
+                CIR = MBR
+                If CIR.IsExecutable Then
+                    CIR.Execute(r, m)
+                Else
+                    Throw New DataException($"Attempting to execute a non-executable instruction")
+                End If
+
+                'TODO: single step, stack for registers and memory to allow undo?
+            Loop
+        End Sub
+
         Sub Main(args As String())
             Dim program As New List(Of String)
+            Dim m As Memory
+            Dim r As Registers
+
             Do
                 DisplayMenu()
                 Select Case GetMenuOption()
@@ -245,11 +169,27 @@ Namespace HLA_VB
                         program = LoadHLAFile(program)
                     Case "D"
                         DisplayHLA(program)
-                    Case "C"
+                    Case "C", "T"
+                        If program.Count > 0 Then
+                            With CompileHLA(program)
+                                m = .assembly
+                                r = .registers
+                                If .errorList.Count > 0 Then
+                                    displayErrors(program, .errorList)
+                                    m.Clear()
+                                Else
+                                    DisplayAssembly(m)
+                                End If
+                            End With
+                        Else
+                            Console.WriteLine("No HLA program to compile")
+                        End If
                     Case "E"
+                        ExecuteProgram(m, r)
                     Case "N"
                         program = NewHLAProgram()
-                    Case "H"
+                    Case "H", "?"
+                        DisplayHelp()
                     Case "Q"
                         Exit Do
                     Case Else

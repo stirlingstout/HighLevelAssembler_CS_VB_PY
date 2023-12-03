@@ -14,14 +14,7 @@ Namespace HLA_VB_Tests
             Assert.AreEqual(destination, r.PC)
 
             b = New BInstruction("START") ' So address is -1
-            Dim failed = False
-            Try
-                b.Execute(r)
-            Catch ex As Exception
-                failed = True
-            End Try
-            Assert.IsTrue(failed)
-            Assert.AreEqual(destination, r.PC)
+            Assert.ThrowsException(Of IndexOutOfRangeException)(Sub() b.Execute(r))
 
             destination = 55
             b.PatchAddress("START", destination)
