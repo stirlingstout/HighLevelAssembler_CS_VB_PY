@@ -222,7 +222,7 @@ Namespace HLA_VB
         End Function
 
         <Extension>
-        Public Function Matches(tokenList As List(Of Token), pattern As List(Of Token)) As Boolean
+        Public Function Matches(tokenList As IEnumerable(Of Token), pattern As IEnumerable(Of Token)) As Boolean
             Return tokenList.Count = pattern.Count AndAlso
                 tokenList.Zip(pattern).All(Function(pair) pair.First.Matches(pair.Second))
 

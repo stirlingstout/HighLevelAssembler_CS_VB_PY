@@ -5,16 +5,13 @@ Namespace HLA_VB
 
     Public Module Instructions
 
-        Function ValidRegister(r As Integer) As Boolean
-            Return r >= 0 And r <= HIGHEST_REGISTER_NUMBER
-        End Function
-
-        Function ValidAddress(a As Integer) As Boolean
-            Return a >= 0 And a <= HIGHEST_MEMORY_ADDRESS
-        End Function
 
         Public Class Memory
             Private ReadOnly words(HIGHEST_MEMORY_ADDRESS) As MemoryLocation
+
+            Shared Function ValidAddress(a As Integer) As Boolean
+                Return a >= 0 And a <= HIGHEST_MEMORY_ADDRESS
+            End Function
 
             Sub New()
                 For i = 0 To HIGHEST_MEMORY_ADDRESS
@@ -54,6 +51,10 @@ Namespace HLA_VB
                 HALT
             End Enum
 
+            Shared Function ValidRegister(r As Integer) As Boolean
+                Return r >= 0 And r <= HIGHEST_REGISTER_NUMBER
+            End Function
+
             Private ReadOnly GP_Registers(HIGHEST_REGISTER_NUMBER) As Integer
             Private _PC As Integer
             Property PC As Integer
@@ -61,7 +62,7 @@ Namespace HLA_VB
                     Return _PC
                 End Get
                 Set(value As Integer)
-                    If ValidAddress(value) Then
+                    If Memory.ValidAddress(value) Then
                         _PC = value
                     Else
                         Throw New IndexOutOfRangeException($"Attempted to set PC to invalid value {value}")
@@ -261,8 +262,8 @@ Namespace HLA_VB
             Protected locationLabel As String
 
             Sub New(toFromRegister As Integer, location As Integer)
-                If ValidRegister(toFromRegister) Then
-                    If ValidAddress(location) Then
+                If Registers.ValidRegister(toFromRegister) Then
+                    If Memory.ValidAddress(location) Then
                         Rd = toFromRegister
                         Me.location = location
                     Else
@@ -274,7 +275,7 @@ Namespace HLA_VB
             End Sub
 
             Sub New(toFromRegister As Integer, location As String)
-                If ValidRegister(toFromRegister) Then
+                If Registers.ValidRegister(toFromRegister) Then
                     Rd = toFromRegister
                     Me.locationLabel = location
                 Else
@@ -309,6 +310,10 @@ Namespace HLA_VB
                     Throw New DataException("Attempt to load from a non-data location")
                 End If
             End Sub
+
+            Public Overrides Function ToString() As String
+                Return $"LDR R{Rd}, {location} {locationLabel}"
+            End Function
         End Class
 
         Class StoreInstructionDirect
@@ -348,8 +353,8 @@ Namespace HLA_VB
             Protected Rn As Integer
 
             Sub New(destinationRegister As Integer, firstOperandRegister As Integer)
-                If ValidRegister(destinationRegister) Then
-                    If ValidRegister(firstOperandRegister) Then
+                If Registers.ValidRegister(destinationRegister) Then
+                    If Registers.ValidRegister(firstOperandRegister) Then
                         Rd = destinationRegister
                         Rn = firstOperandRegister
                     Else
@@ -378,7 +383,7 @@ Namespace HLA_VB
 
             Sub New(destinationRegister As Integer, firstOperandRegister As Integer, secondOperandRegister As Integer)
                 MyBase.New(destinationRegister, firstOperandRegister)
-                If ValidRegister(secondOperandRegister) Then
+                If Registers.ValidRegister(secondOperandRegister) Then
                     Rm = secondOperandRegister
                 Else
                     Throw New IndexOutOfRangeException($"Invalid second operand register {secondOperandRegister}")
@@ -598,8 +603,8 @@ Namespace HLA_VB
             Private ReadOnly Rm As Integer
 
             Sub New(Rd As Integer, Rm As Integer)
-                If ValidRegister(Rd) Then
-                    If ValidRegister(Rm) Then
+                If Registers.ValidRegister(Rd) Then
+                    If Registers.ValidRegister(Rm) Then
                         Me.Rd = Rd
                         Me.Rm = Rm
                     Else
@@ -622,7 +627,7 @@ Namespace HLA_VB
             Private ReadOnly value As Integer
 
             Sub New(Rd As Integer, value As Integer)
-                If ValidRegister(Rd) Then
+                If Registers.ValidRegister(Rd) Then
                     Me.Rd = Rd
                     Me.value = value
                 Else
@@ -642,8 +647,8 @@ Namespace HLA_VB
             Private ReadOnly Rm As Integer
 
             Sub New(Rd As Integer, Rm As Integer)
-                If ValidRegister(Rd) Then
-                    If ValidRegister(Rm) Then
+                If Registers.ValidRegister(Rd) Then
+                    If Registers.ValidRegister(Rm) Then
                         Me.Rd = Rd
                         Me.Rm = Rm
                     Else
@@ -666,7 +671,7 @@ Namespace HLA_VB
             Private ReadOnly value As Integer
 
             Sub New(Rd As Integer, value As Integer)
-                If ValidRegister(Rd) Then
+                If Registers.ValidRegister(Rd) Then
                     Me.Rd = Rd
                     Me.value = value
                 Else

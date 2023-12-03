@@ -92,13 +92,47 @@ Namespace HLA_VB
 
         End Sub
 
-        Function AddRegister(t As List(Of Token)) As List(Of MemoryLocation)
+        ' These functions take a list of tokens representing the current line and return a list of
+        ' memory locations/instructions. List because IF ... GOTO generates two instructions
+        Function LDRDirect(t As IEnumerable(Of Token)) As List(Of Instruction)
+            ' Rd = MEM[100]
+            ' 0  1  2 3 4 5
+            Try
+                Return New List(Of Instruction)() From {New LoadInstructionDirect(t(0).r, t(4).i)}
+            Catch ex As Exception
+                Throw New Exception()
+            End Try
+        End Function
 
+        Function LDRDirectLabel(t As IEnumerable(Of Token)) As List(Of Instruction)
+            ' Rd = MEM[Start]
+            ' 0  1  2 3  4  5
+            Return New List(Of Instruction)() From {New LoadInstructionDirect(t(0).r, t(4).id)}
+        End Function
+
+        Function STRDirect(t As IEnumerable(Of Token)) As List(Of Instruction)
+            ' MEM[100] = Rd
+            '  0 1 2 3 4 5
+            Return New List(Of Instruction)() From {New StoreInstructionDirect(t(5).r, t(2).i)}
+        End Function
+
+        Function STRDirectLabel(t As IEnumerable(Of Token)) As List(Of Instruction)
+            ' MEM[Start] = Rd
+            '  0 1  2  3 4 5
+            Return New List(Of Instruction)() From {New StoreInstructionDirect(t(5).r, t(2).id)}
+        End Function
+
+        Function AddRegister(t As IEnumerable(Of Token)) As List(Of Instruction)
+            ' Rd = Rn + Rm
+            ' 0  1 2  3 4
+            Return New List(Of Instruction)() From {New ADDRegisterInstruction(t(0).r, t(2).r, t(4).r)}
         End Function
 
 
-        Function AddImmediate(t As List(Of Token)) As List(Of MemoryLocation)
-
+        Function AddImmediate(t As IEnumerable(Of Token)) As List(Of Instruction)
+            ' Rd = Rn + 45
+            ' 0  1 2  3 4
+            Return New List(Of Instruction)() From {New ADDImmediateInstruction(t(0).r, t(2).r, t(4).i)}
         End Function
 
         Function CompileHLA(program As List(Of String)) As (assembly As Memory, registers As Registers, errorList As List(Of String))
@@ -106,8 +140,13 @@ Namespace HLA_VB
             Dim r As New Registers()
             Dim errors As New List(Of String)
 
-            Dim patterns As New List(Of (List(Of Token), Func(Of List(Of Token), List(Of MemoryLocation)))) From
-            {("R0 = R1 + R2".ToTokens(), AddressOf AddRegister),
+            Dim patterns As New List(Of (pattern As IEnumerable(Of Token), generator As Func(Of List(Of Token), List(Of Instruction)))) From
+            {
+            ("R0 = MEM[100]".ToTokens(), AddressOf LDRDirect),
+            ("R0 = MEM[First]".ToTokens(), AddressOf LDRDirectLabel),
+            ("MEM[100] = R0".ToTokens(), AddressOf STRDirect),
+            ("MEM[First] = R0".ToTokens(), AddressOf STRDirectLabel),
+            ("R0 = R1 + R2".ToTokens(), AddressOf AddRegister),
             ("R0 = R1 + 25".ToTokens(), AddressOf AddImmediate)}
 
             r.PC = 0
@@ -123,7 +162,19 @@ Namespace HLA_VB
                     End If
                 Loop
 
+                Dim matches = patterns.Where(Function(p) s.Matches(p.pattern))
+                If matches.Any() Then
+                    Dim i = matches.First().generator(s)
+                    For Each instruction In matches.First().generator(s)
+                        m(r.PC) = instruction
+                        r.PC += 1
+                    Next
+                Else
+                    errors.Add($"Error: {line}")
+                End If
             Next
+            'r.PC = 0
+            Return (m, r, errors)
         End Function
 
         Sub DisplayErrors(program As List(Of String), errorList As List(Of String))
@@ -175,7 +226,7 @@ Namespace HLA_VB
                                 m = .assembly
                                 r = .registers
                                 If .errorList.Count > 0 Then
-                                    displayErrors(program, .errorList)
+                                    DisplayErrors(program, .errorList)
                                     m.Clear()
                                 Else
                                     DisplayAssembly(m)
