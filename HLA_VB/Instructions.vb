@@ -267,7 +267,7 @@ Namespace HLA_VB
                         Rd = toFromRegister
                         Me.location = location
                     Else
-                        Throw New IndexOutOfRangeException($"Invalid register number {toFromRegister}")
+                        Throw New IndexOutOfRangeException($"Invalid address {location}")
                     End If
                 Else
                     Throw New IndexOutOfRangeException($"Invalid register number {toFromRegister}")
