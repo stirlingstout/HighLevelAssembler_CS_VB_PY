@@ -14,10 +14,9 @@ Namespace HLA_VB
     Public Module Program
         Const HLA_EXTENSION = ".hla"
 
-        Public Const HIGHEST_MEMORY_ADDRESS = 1024
+        Public Const HIGHEST_MEMORY_ADDRESS = 1023
         Public Const HIGHEST_REGISTER_NUMBER = 15
         Public Const REGISTER_SIZE = 32
-
 
         Sub DisplayMenu()
             Console.WriteLine("L - (L)oad a HLA file")
@@ -97,21 +96,7 @@ Namespace HLA_VB
             Dim r As New Registers()
             Dim errors As New List(Of String)
 
-            Dim patterns As New List(Of (pattern As IEnumerable(Of Token), generator As Func(Of List(Of Token), List(Of Instruction)))) From
-            {
-            ("R0 = MEM[100]".ToTokens(), AddressOf LDRDirect),
-            ("R0 = MEM[First]".ToTokens(), AddressOf LDRDirectLabel),
-            ("MEM[100] = R0".ToTokens(), AddressOf STRDirect),
-            ("MEM[First] = R0".ToTokens(), AddressOf STRDirectLabel),
-            ("R0 = R1 + R2".ToTokens(), AddressOf ADDRegister),
-            ("R0 = R1 + 25".ToTokens(), AddressOf ADDImmediate),
-            ("R0 = R1 - R2".ToTokens(), AddressOf SUBRegister),
-            ("R0 = R1 - 25".ToTokens(), AddressOf SUBImmediate),
-            ("R0 = R1 AND R2".ToTokens(), AddressOf ADDRegister),
-            ("R0 = R1 AND 25".ToTokens(), AddressOf ADDImmediate),
-            ("R0 = R1 OR R2".ToTokens(), AddressOf SUBRegister),
-            ("R0 = R1 OR 25".ToTokens(), AddressOf SUBImmediate)
-            }
+            Dim symbolTable As New Dictionary(Of String, Integer)
 
             r.PC = 0
             For Each line In program
@@ -120,27 +105,47 @@ Namespace HLA_VB
                 Do While s.Count >= 2
                     If s.First().type = TokenType.Identifier AndAlso s(1).type = TokenType.Symbol AndAlso s(1).sym = ":" Then
                         labels.Add(s.First().id)
+                        If Not symbolTable.TryAdd(s.First().id, r.PC) Then
+                            errors.Add($"Duplicate label {s.First().id}")
+                        End If
                         s = s.Skip(2)
                     Else
                         Exit Do
                     End If
                 Loop
 
-                Dim matches = patterns.Where(Function(p) s.Matches(p.pattern))
-                If matches.Any() Then
-                    Try
-                        For Each instruction In matches.First().generator(s)
-                            m(r.PC) = instruction
-                            r.PC += 1
-                        Next
-                    Catch ex As Exception
-                        errors.Add($"{ex.Message} in {line}")
-                    End Try
-                Else
-                    errors.Add($"Error: {line}")
+                If s.Any() Then ' Line is not empty or contains more than labels
+                    Dim matches = Parser.patterns.Where(Function(p) s.Matches(p.pattern))
+                    If matches.Any() Then
+                        Debug.Assert(matches.Count = 1, $"More than one parsing found for {line}")
+                        Try
+                            For Each instruction In matches.First().generator(s.ToList()) ' .ToList() since labels cause s to become a skip iterator or something!
+                                instruction.AddLabels(labels)
+                                m(r.PC) = instruction
+
+                                r.PC += 1 ' TODO: What about pseudo-operations?
+                            Next
+                        Catch ex As Exception
+                            errors.Add($"{ex.Message} in {line}")
+                        End Try
+                    Else
+                        errors.Add($"Error: {line}")
+                    End If
                 End If
             Next
-            'r.PC = 0
+
+            For Each location In m
+                If TypeOf location Is BranchInstruction Then
+                    With CType(location, BranchInstruction)
+                        If .destination = BranchInstruction.InvalidAddress Then
+                            If Not symbolTable.TryGetValue(.destinationLabel, .destination) Then
+                                errors.Add($"Undefined label { .destinationLabel}")
+                            End If
+                        End If
+                    End With
+                End If
+            Next
+            r.PC = 0
             Return (m, r, errors)
         End Function
 

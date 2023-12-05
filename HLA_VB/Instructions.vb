@@ -5,9 +5,30 @@ Namespace HLA_VB
 
     Public Module Instructions
 
-
         Public Class Memory
+            Implements IEnumerable, IEnumerator
+
             Private ReadOnly words(HIGHEST_MEMORY_ADDRESS) As MemoryLocation
+
+            Private currentLocation As Integer
+            Public Function GetEnumerator() As IEnumerator Implements IEnumerable.GetEnumerator
+                Return CType(Me, IEnumerator)
+            End Function
+
+            Public Function MoveNext() As Boolean Implements IEnumerator.MoveNext
+                currentLocation += 1
+                Return currentLocation <= HIGHEST_MEMORY_ADDRESS
+            End Function
+
+            Public Sub Reset() Implements IEnumerator.Reset
+                currentLocation = -1
+            End Sub
+
+            Public ReadOnly Property Current As Object Implements IEnumerator.Current
+                Get ' TODO: look at https://learn.microsoft.com/en-us/troubleshoot/developer/visualstudio/csharp/language-compilers/make-class-foreach-statement
+                    Return words(currentLocation)
+                End Get
+            End Property
 
             Shared Function ValidAddress(a As Integer) As Boolean
                 Return a >= 0 And a <= HIGHEST_MEMORY_ADDRESS
@@ -17,6 +38,7 @@ Namespace HLA_VB
                 For i = 0 To HIGHEST_MEMORY_ADDRESS
                     words(i) = New MemoryLocation()
                 Next
+                currentLocation = -1
             End Sub
 
             Sub Clear()
@@ -25,7 +47,6 @@ Namespace HLA_VB
                 Next
             End Sub
 
-            ' TODO: not sure about this. Proably need 
             Default Property At(address As Integer) As MemoryLocation
                 Get
                     If ValidAddress(address) Then
@@ -141,7 +162,7 @@ Namespace HLA_VB
         Public Class MemoryLocation
             Public Const MEMORY_LABEL_WIDTH = 10
 
-            Private ReadOnly labels As List(Of String)
+            Private ReadOnly labels As List(Of String) ' But contents can be altered
 
             Sub New()
                 labels = New List(Of String)
@@ -149,6 +170,10 @@ Namespace HLA_VB
 
             Sub AddLabel(label As String)
                 labels.Add(label)
+            End Sub
+
+            Sub AddLabels(labels As List(Of String))
+                Me.labels.AddRange(labels)
             End Sub
 
             Sub Clear()
@@ -282,6 +307,12 @@ Namespace HLA_VB
                     Throw New IndexOutOfRangeException($"Invalid register number {toFromRegister}")
                 End If
             End Sub
+
+            Public Overrides Function Equals(obj As Object) As Boolean
+                Return Rd = CType(obj, MemoryReferenceInstruction).Rd AndAlso
+                location = CType(obj, MemoryReferenceInstruction).location AndAlso
+                locationLabel = CType(obj, MemoryReferenceInstruction).locationLabel ' TODO: any way these can be different?
+            End Function
         End Class
 
         Class LoadInstructionDirect
@@ -314,6 +345,10 @@ Namespace HLA_VB
             Public Overrides Function ToString() As String
                 Return $"LDR R{Rd}, {location} {locationLabel}"
             End Function
+
+            Public Overrides Function Equals(obj As Object) As Boolean
+                Return MyBase.Equals(obj) AndAlso TypeName(obj) = TypeName(Me)
+            End Function
         End Class
 
         Class StoreInstructionDirect
@@ -342,6 +377,11 @@ Namespace HLA_VB
                     Throw New DataException("Attempt to load from a non-data location")
                 End If
             End Sub
+
+            Public Overrides Function Equals(obj As Object) As Boolean
+                Return MyBase.Equals(obj) AndAlso TypeName(obj) = TypeName(Me)
+            End Function
+            ' TODO see if this can be moved up the hierarchy into instruction. Is MyBase dynamic? MyClass/MyBase?
         End Class
 #End Region
 
@@ -374,6 +414,11 @@ Namespace HLA_VB
                 Execute(r)  ' Arithmetic Logic instructions don't access memory
             End Sub
 
+            Public Overrides Function Equals(obj As Object) As Boolean
+                With CType(obj, ArithmeticLogicInstruction)
+                    Return Rd = .Rd And Rn = .Rn
+                End With
+            End Function
         End Class
 
         MustInherit Class ArithmeticLogicInstructionRegister
@@ -389,6 +434,11 @@ Namespace HLA_VB
                     Throw New IndexOutOfRangeException($"Invalid second operand register {secondOperandRegister}")
                 End If
             End Sub
+
+            Public Overrides Function Equals(obj As Object) As Boolean
+                Return MyBase.Equals(obj) AndAlso
+                    Rm = CType(obj, ArithmeticLogicInstructionRegister).Rm
+            End Function
         End Class
 
         MustInherit Class ArithmeticLogicInstructionImmediate
@@ -400,6 +450,11 @@ Namespace HLA_VB
                 MyBase.New(destinationRegister, firstOperandRegister)
                 value = secondOperandImmediate
             End Sub
+
+            Public Overrides Function Equals(obj As Object) As Boolean
+                Return MyBase.Equals(obj) AndAlso
+                    value = CType(obj, ArithmeticLogicInstructionImmediate).value
+            End Function
         End Class
 
         Class ADDRegisterInstruction
@@ -596,6 +651,50 @@ Namespace HLA_VB
             End Sub
         End Class
 
+        Class MOVRegisterInstruction
+            Inherits OddInstruction
+
+            Private ReadOnly Rd As Integer
+            Private ReadOnly Rm As Integer
+
+            Sub New(Rd As Integer, Rm As Integer)
+                If Registers.ValidRegister(Rd) Then
+                    If Registers.ValidRegister(Rm) Then
+                        Me.Rd = Rd
+                        Me.Rm = Rm
+                    Else
+                        Throw New IndexOutOfRangeException($"Invalid register in constructor for MOV instruction {Rm}")
+                    End If
+                Else
+                    Throw New IndexOutOfRangeException($"Invalid register in constructor for MOV instruction {Rd}")
+                End If
+            End Sub
+
+            Public Overrides Sub Execute(r As Registers)
+                r(Rd) = r(Rm)
+            End Sub
+        End Class
+
+        Class MOVImmediateInstruction
+            Inherits OddInstruction
+
+            Private ReadOnly Rd As Integer
+            Private ReadOnly value As Integer
+
+            Sub New(Rd As Integer, value As Integer)
+                If Registers.ValidRegister(Rd) Then
+                    Me.Rd = Rd
+                    Me.value = value
+                Else
+                    Throw New IndexOutOfRangeException($"Invalid register in constructor for MOV instruction {Rd}")
+                End If
+            End Sub
+
+            Public Overrides Sub Execute(r As Registers)
+                r(Rd) = value
+            End Sub
+        End Class
+
         Class MVNRegisterInstruction
             Inherits OddInstruction
 
@@ -689,15 +788,17 @@ Namespace HLA_VB
         Class BranchInstruction
             Inherits Instruction
 
-            Protected destination As Integer
-            Protected ReadOnly destinationLabel As String
+            Friend Const InvalidAddress = -1
+
+            Public destination As Integer
+            Public ReadOnly destinationLabel As String
 
             Sub New(destination As Integer)
                 Me.destination = destination
             End Sub
 
             Sub New(label As String)
-                Me.destination = -1
+                Me.destination = InvalidAddress
                 Me.destinationLabel = label
             End Sub
 
