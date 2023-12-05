@@ -8,25 +8,25 @@ Module CodeGenerator
     ' These functions take a list of tokens representing the current line and return a list of
     ' memory locations/instructions. List because IF ... GOTO generates two instructions
     Function LDRDirect(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = MEM[100]
+        ' Rd = MEMORY[100]
         ' 0  1  2 3 4 5
         Return New List(Of MemoryLocation)() From {New LoadInstructionDirect(t(0).r, t(4).i)}
     End Function
 
     Function LDRDirectLabel(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = MEM[Start]
+        ' Rd = MEMORY[Start]
         ' 0  1  2 3  4  5
         Return New List(Of MemoryLocation)() From {New LoadInstructionDirect(t(0).r, t(4).id)}
     End Function
 
     Function STRDirect(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' MEM[100] = Rd
+        ' MEMORY[100] = Rd
         '  0 1 2 3 4 5
         Return New List(Of MemoryLocation)() From {New StoreInstructionDirect(t(5).r, t(2).i)}
     End Function
 
     Function STRDirectLabel(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' MEM[Start] = Rd
+        ' MEMORY[Start] = Rd
         '  0 1  2  3 4 5
         Return New List(Of MemoryLocation)() From {New StoreInstructionDirect(t(5).r, t(2).id)}
     End Function
@@ -190,7 +190,7 @@ Module CodeGenerator
         ' REPEAT
         ' 0
         REPEATCount += 1
-        Return New List(Of MemoryLocation)() From {New LabelHolder($"REPEAT{REPEATCount}")}
+        Return New List(Of MemoryLocation)() From {New Label($"REPEAT{REPEATCount}")}
     End Function
 
     Function UNTIL_REQR(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
@@ -234,7 +234,7 @@ Module CodeGenerator
         FORCount += 1
         FORLoops.Push((t(1).r, True))
         Return New List(Of MemoryLocation)() From {New MOVImmediateInstruction(t(1).r, t(3).i),
-                                                   New LabelHolder($"FOR{FORCount}"),
+                                                   New Label($"FOR{FORCount}"),
                                                    New CMPImmediateInstruction(t(1).r, t(5).i),
                                                    New BGTInstruction($"ENDFOR{FORCount}")}
     End Function
@@ -245,7 +245,7 @@ Module CodeGenerator
         FORCount += 1
         FORLoops.Push((t(1).r, False))
         Return New List(Of MemoryLocation)() From {New MOVImmediateInstruction(t(1).r, t(3).i),
-                                                   New LabelHolder($"FOR{FORCount}"),
+                                                   New Label($"FOR{FORCount}"),
                                                    New CMPImmediateInstruction(t(1).r, t(5).i),
                                                    New BLTInstruction($"ENDFOR{FORCount}")}
     End Function
@@ -264,8 +264,24 @@ Module CodeGenerator
         End With
         Return New List(Of MemoryLocation)() From {ChangeIndex,
                                                    New BInstruction($"FOR{FORCount + 1}"),
-                                                   New LabelHolder($"ENDFOR{FORCount + 1}")}
+                                                   New Label($"ENDFOR{FORCount + 1}")}
     End Function
 
+    Function WHILE_RNER(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' WHILE R1 <> R2
+        '   0   1  2  3
+        WHILECount += 1
+        Return New List(Of MemoryLocation)() From {New Label($"WHILE{WHILECount}"),
+                                                   New CMPRegisterInstruction(t(1).r, t(3).r),
+                                                   New BEQInstruction($"ENDWHILE{WHILECount}")}
+    End Function
+
+    Function ENDWHILE(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' END WHILE
+        '   0   1
+        WHILECount -= 1
+        Return New List(Of MemoryLocation)() From {New BInstruction($"WHILE{WHILECount + 1}"),
+                                                   New Label($"ENDWHILE{WHILECount + 1}")}
+    End Function
 #End Region
 End Module

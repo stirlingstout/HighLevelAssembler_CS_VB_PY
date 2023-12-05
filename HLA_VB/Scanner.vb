@@ -26,6 +26,7 @@ Namespace HLA_VB
             [REPEAT]
             [UNTIL]
             [WHILE]
+            [THEN]
             [ELSE]
         End Enum
 
@@ -105,7 +106,11 @@ Namespace HLA_VB
                                             KeywordType.MEMORY,
                                             KeywordType.GOTO, KeywordType.GOTO, KeywordType.GOTO,
                                             KeywordType.DATA,
-                                            KeywordType.END, KeywordType.END, KeywordType.END}
+                                            KeywordType.END, KeywordType.END, KeywordType.END,
+                                            KeywordType.FOR, KeywordType.TO, KeywordType.DOWNTO,
+                                            KeywordType.REPEAT, KeywordType.UNTIL,
+                                            KeywordType.WHILE,
+                                            KeywordType.THEN, KeywordType.ELSE}
 
             Public t As Token
 

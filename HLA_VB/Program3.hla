@@ -4,10 +4,10 @@ R1 = R1 + 1
 R1 = R1 + 1
 R2 = R1 + R1
 IF R1 < 10 GOTO again
-MEM[A] = R1
-MEM[B] = R2
+MEMORY[A] = R1
+MEMORY[B] = R2
 R3 = R1 + R2
-MEM[C] = R3
+MEMORY[C] = R3
 END
 
 

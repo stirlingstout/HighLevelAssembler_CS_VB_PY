@@ -264,26 +264,26 @@ Namespace HLA_VB
         ''' Instances of this class should never be stored in a memory. They are just used to carry a 
         ''' label back from code generation
         ''' </summary>
-        Class LabelHolder
+        Class Label
             Inherits MemoryLocation
 
-            Public Property Label As String
+            Public Property LabelText As String
 
             Sub New()
-                label = ""
+                LabelText = ""
             End Sub
 
             Sub New(label As String)
-                Me.label = label
+                Me.LabelText = label
             End Sub
 
             Overloads Sub Clear()
                 MyBase.Clear()
-                label = ""
+                LabelText = ""
             End Sub
 
             Public Overrides Function ToString() As String
-                Return $"{MyBase.ToString()}{label}:"
+                Return $"{MyBase.ToString()}{LabelText}:"
             End Function
 
             Overrides Sub Execute(r As Registers, m As Memory)

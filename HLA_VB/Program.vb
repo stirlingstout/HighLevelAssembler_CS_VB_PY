@@ -131,8 +131,8 @@ Namespace HLA_VB
 
                                     r.PC += 1 ' TODO: What about pseudo-operations?
                                 Else ' it's a label holder
-                                    With CType(instruction, LabelHolder)
-                                        AddLabel(.label)
+                                    With CType(instruction, Label)
+                                        AddLabel(.LabelText)
                                     End With
                                 End If
                             Next

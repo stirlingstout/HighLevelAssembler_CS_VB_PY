@@ -7,10 +7,10 @@ Public Class Parser
     ' TODO: we could reduce the number of patterns here by allowing capturing of operators and register/immediate
     Public Shared ReadOnly patterns As New List(Of (pattern As IEnumerable(Of Token), generator As Func(Of List(Of Token), List(Of MemoryLocation)))) From
 {
-("R0 = MEM[100]".ToTokens(), AddressOf LDRDirect),
-("R0 = MEM[First]".ToTokens(), AddressOf LDRDirectLabel),
-("MEM[100] = R0".ToTokens(), AddressOf STRDirect),
-("MEM[First] = R0".ToTokens(), AddressOf STRDirectLabel),
+("R0 = MEMORY[100]".ToTokens(), AddressOf LDRDirect),
+("R0 = MEMORY[First]".ToTokens(), AddressOf LDRDirectLabel),
+("MEMORY[100] = R0".ToTokens(), AddressOf STRDirect),
+("MEMORY[First] = R0".ToTokens(), AddressOf STRDirectLabel),
 ("R0 = R1 + R2".ToTokens(), AddressOf ADDRegister),
 ("R0 = R1 + 25".ToTokens(), AddressOf ADDImmediate),
 ("R0 = R1 - R2".ToTokens(), AddressOf SUBRegister),
@@ -40,7 +40,9 @@ Public Class Parser
 ("UNTIL R1 = R2".ToTokens(), AddressOf UNTIL_REQR),
 ("UNTIL R1 < R2".ToTokens(), AddressOf UNTIL_RLTR),
 ("UNTIL R1 > R2".ToTokens(), AddressOf UNTIL_RGTR),
-("UNTIL R1 <> R2".ToTokens(), AddressOf UNTIL_RNER)
+("UNTIL R1 <> R2".ToTokens(), AddressOf UNTIL_RNER),
+("WHILE R1 <> R2".ToTokens(), AddressOf WHILE_RNER),
+("END WHILE".ToTokens(), AddressOf ENDWHILE)
     }
 
     ' TODO: consider if we want to allow branch instructions to address without labels
