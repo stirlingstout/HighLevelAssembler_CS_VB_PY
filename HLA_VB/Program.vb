@@ -98,16 +98,21 @@ Namespace HLA_VB
 
             Dim symbolTable As New Dictionary(Of String, Integer)
 
+            Dim AddLabel = Sub(label As String)
+                               If Not symbolTable.TryAdd(label, r.PC) Then
+                                   errors.Add($"Duplicate label {label}")
+                               End If
+                           End Sub
+
             r.PC = 0
+            ResetStructureCounts()
             For Each line In program
                 Dim s As IEnumerable(Of Token) = line.ToTokens()
                 Dim labels As New List(Of String)
                 Do While s.Count >= 2
                     If s.First().type = TokenType.Identifier AndAlso s(1).type = TokenType.Symbol AndAlso s(1).sym = ":" Then
                         labels.Add(s.First().id)
-                        If Not symbolTable.TryAdd(s.First().id, r.PC) Then
-                            errors.Add($"Duplicate label {s.First().id}")
-                        End If
+                        AddLabel(s.First().id)
                         s = s.Skip(2)
                     Else
                         Exit Do
@@ -120,10 +125,16 @@ Namespace HLA_VB
                         Debug.Assert(matches.Count = 1, $"More than one parsing found for {line}")
                         Try
                             For Each instruction In matches.First().generator(s.ToList()) ' .ToList() since labels cause s to become a skip iterator or something!
-                                instruction.AddLabels(labels)
-                                m(r.PC) = instruction
+                                If instruction.UsesMemory Then
+                                    instruction.AddLabels(labels)
+                                    m(r.PC) = instruction
 
-                                r.PC += 1 ' TODO: What about pseudo-operations?
+                                    r.PC += 1 ' TODO: What about pseudo-operations?
+                                Else ' it's a label holder
+                                    With CType(instruction, LabelHolder)
+                                        AddLabel(.label)
+                                    End With
+                                End If
                             Next
                         Catch ex As Exception
                             errors.Add($"{ex.Message} in {line}")

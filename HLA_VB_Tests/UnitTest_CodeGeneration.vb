@@ -126,5 +126,38 @@ Namespace HLA_VB_Tests
             Assert.AreEqual(-5, r(1))
         End Sub
 
+        <TestMethod>
+        Sub TestCodeGeneration7()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program = New List(Of String)() From {"R1 = 0", "FOR R2 = 1 to 10", "R1 = R1 + R2", "END FOR", "HALT"}
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            Assert.AreEqual(0, errors.Count)
+            ExecuteProgram(m, r)
+            Assert.AreEqual(55, r(1))
+        End Sub
+
+        <TestMethod>
+        Sub TestCodeGeneration8()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program = New List(Of String)() From {"R1 = 0", "FOR R2 = 100 downto 1", "R1 = R1 + R2", "END FOR", "HALT"}
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            Assert.AreEqual(0, errors.Count)
+            ExecuteProgram(m, r)
+            Assert.AreEqual(5050, r(1))
+        End Sub
     End Class
 End Namespace

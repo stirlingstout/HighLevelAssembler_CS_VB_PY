@@ -5,7 +5,7 @@ Imports HLA_VB.HLA_VB.Scanner
 Public Class Parser
 
     ' TODO: we could reduce the number of patterns here by allowing capturing of operators and register/immediate
-    Public Shared ReadOnly patterns As New List(Of (pattern As IEnumerable(Of Token), generator As Func(Of List(Of Token), List(Of Instruction)))) From
+    Public Shared ReadOnly patterns As New List(Of (pattern As IEnumerable(Of Token), generator As Func(Of List(Of Token), List(Of MemoryLocation)))) From
 {
 ("R0 = MEM[100]".ToTokens(), AddressOf LDRDirect),
 ("R0 = MEM[First]".ToTokens(), AddressOf LDRDirectLabel),
@@ -33,8 +33,10 @@ Public Class Parser
 ("IF R0 > 25 GOTO Start".ToTokens(), AddressOf IFStatementRGTImmediate),
 ("GOTO Label".ToTokens(), AddressOf BAlwaysLabel),
 ("HALT".ToTokens(), AddressOf HALT),
-("FOR R1 = 1 TO 10".ToTokens(), AddressOf FORIntegerToInteger)
-}
+("FOR R1 = 1 TO 10".ToTokens(), AddressOf FORIntegerToInteger),
+("FOR R1 = 100 DOWNTO 1".ToTokens(), AddressOf FORIntegerDownToInteger),
+("END FOR".ToTokens(), AddressOf ENDFOR)
+    }
 
     ' TODO: consider if we want to allow branch instructions to address without labels
 

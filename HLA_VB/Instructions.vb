@@ -213,6 +213,12 @@ Namespace HLA_VB
             Overridable Sub Execute(r As Registers)
                 Throw New Exception($"Attempt to execute memory location as arithmetic/logic instruction")
             End Sub
+
+            Overridable ReadOnly Property UsesMemory As Boolean
+                Get
+                    Return True
+                End Get
+            End Property
         End Class
 
         Class Data
@@ -252,6 +258,47 @@ Namespace HLA_VB
             Overrides Sub Execute(r As Registers)
                 Throw New DataException($"Attempt to execute data as arithmetic/logic instruction")
             End Sub
+        End Class
+
+        ''' <summary>
+        ''' Instances of this class should never be stored in a memory. They are just used to carry a 
+        ''' label back from code generation
+        ''' </summary>
+        Class LabelHolder
+            Inherits MemoryLocation
+
+            Public Property Label As String
+
+            Sub New()
+                label = ""
+            End Sub
+
+            Sub New(label As String)
+                Me.label = label
+            End Sub
+
+            Overloads Sub Clear()
+                MyBase.Clear()
+                label = ""
+            End Sub
+
+            Public Overrides Function ToString() As String
+                Return $"{MyBase.ToString()}{label}:"
+            End Function
+
+            Overrides Sub Execute(r As Registers, m As Memory)
+                Throw New DataException($"Attempt to execute label holder as load/store instruction")
+            End Sub
+
+            Overrides Sub Execute(r As Registers)
+                Throw New DataException($"Attempt to execute label holder as arithmetic/logic instruction")
+            End Sub
+
+            Public Overrides ReadOnly Property UsesMemory As Boolean
+                Get
+                    Return False
+                End Get
+            End Property
         End Class
 
         MustInherit Class Instruction

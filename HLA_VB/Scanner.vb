@@ -20,6 +20,13 @@ Namespace HLA_VB
             [GOTO]
             [DATA]
             [END]
+            [FOR]
+            [TO]
+            [DOWNTO]
+            [REPEAT]
+            [UNTIL]
+            [WHILE]
+            [ELSE]
         End Enum
 
         Class Token
@@ -83,7 +90,15 @@ Namespace HLA_VB
                                             "MEMORY",
                                             "GOTO",
                                             "DATA",
-                                            "END"}
+                                            "END",
+                                            "FOR",
+                                            "TO",
+                                            "DOWNTO",
+                                            "REPEAT",
+                                            "UNTIL",
+                                            "WHILE",
+                                            "THEN",
+                                            "ELSE"}
 
             Private ReadOnly keywords = New List(Of KeywordType) From
                                             {KeywordType.IF,
