@@ -27,7 +27,7 @@ FOR R1 = 1 TO 100
 NEXT
 HALT
 ```
-does what you'd expect and leaves `R0` with a value of 1 + 2 + 3 + ... + 100 = 5050 (the previous AQA specification had a section on how such control structures could be implemented in assembly language.)
+does what you'd expect and leaves `R0` with a value of 1 + 2 + 3 + ... + 100 = 5050 (the previous AQA specification had a section on how such control structures could be implemented in assembly language.) These control structures are implemented in the `control_structures` branch of the repository.
 
 ## Python
 Third implementation (currently not started)
