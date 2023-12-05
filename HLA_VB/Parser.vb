@@ -35,7 +35,12 @@ Public Class Parser
 ("HALT".ToTokens(), AddressOf HALT),
 ("FOR R1 = 1 TO 10".ToTokens(), AddressOf FORIntegerToInteger),
 ("FOR R1 = 100 DOWNTO 1".ToTokens(), AddressOf FORIntegerDownToInteger),
-("END FOR".ToTokens(), AddressOf ENDFOR)
+("END FOR".ToTokens(), AddressOf ENDFOR),
+("REPEAT".ToTokens(), AddressOf REPEAT),
+("UNTIL R1 = R2".ToTokens(), AddressOf UNTIL_REQR),
+("UNTIL R1 < R2".ToTokens(), AddressOf UNTIL_RLTR),
+("UNTIL R1 > R2".ToTokens(), AddressOf UNTIL_RGTR),
+("UNTIL R1 <> R2".ToTokens(), AddressOf UNTIL_RNER)
     }
 
     ' TODO: consider if we want to allow branch instructions to address without labels

@@ -172,7 +172,7 @@ Module CodeGenerator
     Private IFELSECount = -1
     Private FORCount = -1
     Private WHILECount = -1
-    Private FORLoops As New Stack(Of (Rd As Integer, Incrementing As Boolean))
+    Private ReadOnly FORLoops As New Stack(Of (Rd As Integer, Incrementing As Boolean))
     ' FOR loops are unusual in that we need to know about the register used and the 'direction' of the
     ' loop when we compile the END FOR
 
@@ -191,6 +191,41 @@ Module CodeGenerator
         ' 0
         REPEATCount += 1
         Return New List(Of MemoryLocation)() From {New LabelHolder($"REPEAT{REPEATCount}")}
+    End Function
+
+    Function UNTIL_REQR(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' UNTIL R1 = R2
+        ' 0     1  2 3
+        REPEATCount -= 1
+        Return New List(Of MemoryLocation)() From {New CMPRegisterInstruction(t(1).r, t(3).r),
+                                                   New BNEInstruction($"REPEAT{REPEATCount + 1}")}
+    End Function
+
+
+    Function UNTIL_RLTR(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' UNTIL R1 < R2
+        ' 0     1  2 3
+        REPEATCount -= 1
+        Return New List(Of MemoryLocation)() From {New CMPRegisterInstruction(t(1).r, t(3).r),
+                                                   New BGTInstruction($"REPEAT{REPEATCount + 1}"),
+                                                   New BEQInstruction($"REPEAT{REPEATCount + 1}")}
+    End Function
+
+    Function UNTIL_RGTR(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' UNTIL R1 > R2
+        ' 0     1  2 3
+        REPEATCount -= 1
+        Return New List(Of MemoryLocation)() From {New CMPRegisterInstruction(t(1).r, t(3).r),
+                                                   New BLTInstruction($"REPEAT{REPEATCount + 1}"),
+                                                   New BEQInstruction($"REPEAT{REPEATCount + 1}")}
+    End Function
+
+    Function UNTIL_RNER(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' UNTIL R1 <> R2
+        ' 0     1  2 3
+        REPEATCount -= 1
+        Return New List(Of MemoryLocation)() From {New CMPRegisterInstruction(t(1).r, t(3).r),
+                                                   New BEQInstruction($"REPEAT{REPEATCount + 1}")}
     End Function
 
     Function FORIntegerToInteger(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
@@ -231,5 +266,6 @@ Module CodeGenerator
                                                    New BInstruction($"FOR{FORCount + 1}"),
                                                    New LabelHolder($"ENDFOR{FORCount + 1}")}
     End Function
+
 #End Region
 End Module
