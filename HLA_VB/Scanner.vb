@@ -8,9 +8,10 @@ Namespace HLA_VB
             Register
             StringLiteral
             IntegerLiteral
-            CharacterLiteral ' TODO: character literals not in specification
+            CharacterLiteral ' TODO: string, character literals not in specification
             Identifier
             Symbol
+            Wildcard
             EndOfText
         End Enum
 
@@ -38,6 +39,7 @@ Namespace HLA_VB
             Public r As Integer
             Public c As Char
             Public id As String
+            Public w As String
             Public sym As String
 
             Sub New(k As KeywordType)
@@ -70,13 +72,18 @@ Namespace HLA_VB
             End Sub
 
             Sub New(s As String, type As TokenType)
-                Debug.Assert(type = TokenType.Symbol OrElse type = TokenType.Identifier)
+                Debug.Assert(type = TokenType.Symbol OrElse type = TokenType.Identifier OrElse type = TokenType.Wildcard)
                 Me.type = type
-                If type = TokenType.Symbol Then
-                    Me.sym = s
-                Else
-                    Me.id = s
-                End If
+                Select Case type
+                    Case TokenType.Symbol
+                        Me.sym = s
+                    Case TokenType.Identifier
+                        Me.id = s
+                    Case TokenType.Wildcard
+                        Me.w = s
+                    Case Else
+                        Debug.Assert($"Invalid token type for {s}")
+                End Select
             End Sub
         End Class
 
@@ -160,8 +167,13 @@ Namespace HLA_VB
                         t = New Token(identifier.ToUpper(), TokenType.Identifier)
                     End If
                 ElseIf Char.IsPunctuation(ch) OrElse Char.IsSymbol(ch) Then
-                    Dim sym As String
+                    Dim sym As String, type As TokenType = TokenType.Symbol
                     Select Case ch
+                        Case "?"
+                            NextCharacter()
+                            sym = ch                ' ?2 matches a register or an integer, ?o matches an operator, ?i matches an identifier
+                            type = TokenType.Wildcard
+                            NextCharacter()
                         Case ",", "#", "[", "]", "(", ")", ":"
                             sym = ch
                             NextCharacter()
@@ -199,7 +211,7 @@ Namespace HLA_VB
                         Case Else
                             Throw New Exception($"Unexpected NextToken symbol case for:{ch}")
                     End Select
-                    t = New Token(sym, TokenType.Symbol)
+                    t = New Token(sym, type)
                 Else
                     Throw New Exception($"Unexpected NextToken case for:{ch}")
                 End If
@@ -222,7 +234,9 @@ Namespace HLA_VB
         ''' For two tokens to 'match' they must be of the same type.
         ''' Further, if they are symbols their text must match
         ''' So a token for R1 will match a token for R0, but 
-        ''' a token for = will only match a token for =
+        ''' a token for = will only match a token for =.
+        ''' A wildcard token can be ?2 (to match either a register or an integer literal),
+        ''' ?o to match an operator (symbol really), ?i to match an identifier
         ''' </summary>
         ''' <param name="first"></param>
         ''' <param name="second"></param>
@@ -237,6 +251,17 @@ Namespace HLA_VB
                 ElseIf first.type = TokenType.Symbol Then
                     result = (first.sym = second.sym)
                 End If
+            ElseIf second.type = TokenType.Wildcard Then
+                Select Case second.w
+                    Case "2" ' <operand2>: either an integer literal or a register
+                        result = (first.type = TokenType.IntegerLiteral OrElse first.type = TokenType.Register)
+                    Case "i"
+                        result = (first.type = TokenType.Identifier)
+                    Case "o"
+                        result = (first.type = TokenType.Symbol)
+                    Case Else
+                        Debug.Fail($"Unrecognised wildcard {second.w}")
+                End Select
             End If
             Return result
         End Function

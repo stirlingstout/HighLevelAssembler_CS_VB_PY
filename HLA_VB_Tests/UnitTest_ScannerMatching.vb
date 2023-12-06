@@ -140,9 +140,50 @@ Namespace HLA_VB_Tests
                 Assert.IsFalse(l1.Matches(l2))
                 Assert.IsFalse(l2.Matches(l1))
             End Sub
-
         End Class
 
+        <TestClass>
+        Class TestScannerWildcards
+            <TestMethod>
+            Sub TestScannerWildcard0()
+                Dim l1 = "r1 = R2 + 1".ToTokens()
+                Dim l2 = "r1 = r2 + r3".ToTokens()
+                Dim pattern = "R1 = R1 + ?2".ToTokens()
+                Assert.IsTrue(l1.Matches(pattern))
+                Assert.IsTrue(l2.Matches(pattern))
+                Assert.IsFalse(l1.Matches(l2))
+            End Sub
+
+            <TestMethod>
+            Sub TestScannerWildcard1()
+                Dim l1 = "r1 = R2 + 1".ToTokens()
+                Dim l2 = "r1 = r2 - r3".ToTokens()
+                Dim pattern = "R1 = R1 ?o ?2".ToTokens()
+                Assert.IsTrue(l1.Matches(pattern))
+                Assert.IsTrue(l2.Matches(pattern))
+                Assert.IsFalse(l1.Matches(l2))
+            End Sub
+
+            <TestMethod>
+            Sub TestScannerWildcard2()
+                Dim l1 = "r1 = R2 AND 1".ToTokens()
+                Dim l2 = "r1 = r2 OR r3".ToTokens()
+                Dim pattern = "R1 = R1 ?o ?2".ToTokens()
+                Assert.IsFalse(l1.Matches(pattern))
+                Assert.IsFalse(l2.Matches(pattern))
+                Assert.IsFalse(l1.Matches(l2))
+            End Sub
+
+            <TestMethod>
+            Sub TestScannerWildcard3()
+                Dim l1 = "r1 = R2 AND 1".ToTokens()
+                Dim l2 = "r1 = r2 OR r3".ToTokens()
+                Dim pattern = "R1 = R1 ?i ?2".ToTokens()
+                Assert.IsTrue(l1.Matches(pattern))
+                Assert.IsTrue(l2.Matches(pattern))
+                Assert.IsFalse(l1.Matches(l2))
+            End Sub
+        End Class
     End Class
 
 End Namespace
