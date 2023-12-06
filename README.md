@@ -11,7 +11,7 @@ Second implementation (make sure you use the `control_structures` branch.) Much 
 Over 100 unit tests.
 
 ## Python 3
-Third implementaton. Not started yet.
+Third implementation. Not started yet.
 
 ## Summary
 Low-level language programming is hard. Assembly language programming is hard. High-level languages were developed to make programming easier. If students are to learn the concepts of assembly language programming it may help to start by programming in a language that is halfway between the high-level language they are (one hopes) used to and the AQA assembly language instruction set. HighLevelAssembler (HLA) is a language that tries to be that 'bridge' language.
