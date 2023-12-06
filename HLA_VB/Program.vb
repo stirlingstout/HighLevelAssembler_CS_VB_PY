@@ -154,6 +154,14 @@ Namespace HLA_VB
                             End If
                         End If
                     End With
+                ElseIf TypeOf location Is MemoryReferenceInstruction Then
+                    With CType(location, MemoryReferenceInstruction)
+                        If .location = BranchInstruction.InvalidAddress Then
+                            If Not symbolTable.TryGetValue(.locationLabel, .location) Then
+                                errors.Add($"Undefined label { .locationLabel}")
+                            End If
+                        End If
+                    End With
                 End If
             Next
             r.PC = 0

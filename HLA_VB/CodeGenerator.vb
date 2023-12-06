@@ -165,7 +165,7 @@ Module CodeGenerator
     End Sub
 
 #Disable Warning IDE0060 ' Remove unused parameter
-    Function REPEAT_Statement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function REPEATStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
 #Enable Warning IDE0060 ' Remove unused parameter
         ' REPEAT
         ' 0
@@ -173,34 +173,49 @@ Module CodeGenerator
         Return New List(Of MemoryLocation)() From {New Label($"REPEAT{REPEATCount}")}
     End Function
 
-    Function UNTIL_Statement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function UNTILStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
         ' UNTIL R1 ?o ?2
         ' 0     1  2  3
         REPEATCount -= 1
 
-        Dim c, b As Instruction
+        Dim c, b, beq As Instruction
+        beq = Nothing
+        ' beq used to handle UNTIL < using a BGT and a BEQ.
+        ' TODO Optimise the immediate case by increasing/decreasing the operand
+
         If t(3).type = TokenType.Register Then
             c = New CMPRegisterInstruction(t(1).r, t(3).r)
         Else
             c = New CMPImmediateInstruction(t(1).r, t(3).i)
         End If
+        Dim destination As String = $"REPEAT{REPEATCount + 1}"
         Select Case t(2).sym
+            Case "<"
+                b = New BGTInstruction(destination)
+                beq = New BEQInstruction(destination)
             Case "<="
-                b = New BGTInstruction($"REPEAT{REPEATCount + 1}")
+                b = New BGTInstruction(destination)
+            Case ">"
+                b = New BLTInstruction(destination)
+                beq = New BEQInstruction(destination)
             Case ">="
-                b = New BLTInstruction($"REPEAT{REPEATCount + 1}")
+                b = New BLTInstruction(destination)
             Case "="
-                b = New BNEInstruction($"REPEAT{REPEATCount + 1}")
+                b = New BNEInstruction(destination)
             Case "<>"
-                b = New BEQInstruction($"REPEAT{REPEATCount + 1}")
+                b = New BEQInstruction(destination)
             Case Else
                 Debug.Fail($"Invalid operator {t(2).sym} in UNTIL statement")
                 b = Nothing
         End Select
-        Return New List(Of MemoryLocation)() From {c, b}
+        Dim result = New List(Of MemoryLocation)() From {c, b}
+        If beq IsNot Nothing Then
+            result.Add(New BEQInstruction(destination))
+        End If
+        Return result
     End Function
 
-    Function FORTo(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function FORTOStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
         ' FOR R1 = ?2 TO ?2
         '  0  1  2 3  4  5
         FORCount += 1
@@ -222,7 +237,7 @@ Module CodeGenerator
                                                    New BGTInstruction($"ENDFOR{FORCount}")}
     End Function
 
-    Function FORDownto(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function FORDOWNTOStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
         ' FOR R1 = ?2 DOWNTO ?2
         '  0  1  2 3  4      5
         FORCount += 1
@@ -261,30 +276,63 @@ Module CodeGenerator
                                                    New Label($"ENDFOR{FORCount + 1}")}
     End Function
 
-    Function WHILE_RNER(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' WHILE R1 <> R2
-        '   0   1  2  3
+
+    Function WHILEStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' WHILE R1 ?o ?2
+        ' 0     1  2  3
         WHILECount += 1
-        Return New List(Of MemoryLocation)() From {New Label($"WHILE{WHILECount}"),
-                                                   New CMPRegisterInstruction(t(1).r, t(3).r),
-                                                   New BEQInstruction($"ENDWHILE{WHILECount}")}
+
+        Dim c, b, beq As Instruction
+        ' beq used to handle UNTIL < using a BGT and a BEQ.
+        beq = Nothing
+        ' TODO Optimise the immediate case by increasing/decreasing the operand
+
+        If t(3).type = TokenType.Register Then
+            c = New CMPRegisterInstruction(t(1).r, t(3).r)
+        Else
+            c = New CMPImmediateInstruction(t(1).r, t(3).i)
+        End If
+        Dim destination As String = $"ENDWHILE{WHILECount}"
+        Select Case t(2).sym
+            Case "<"
+                b = New BGTInstruction(destination)
+                beq = New BEQInstruction(destination)
+            Case "<="
+                b = New BGTInstruction(destination)
+            Case ">"
+                b = New BLTInstruction(destination)
+                beq = New BEQInstruction(destination)
+            Case ">="
+                b = New BLTInstruction(destination)
+            Case "="
+                b = New BNEInstruction(destination)
+            Case "<>"
+                b = New BEQInstruction(destination)
+            Case Else
+                Debug.Fail($"Invalid operator {t(2).sym} in WHILE statement")
+                b = Nothing
+        End Select
+        Dim result = New List(Of MemoryLocation)() From {New Label($"WHILE{WHILECount}"), c, b}
+        If beq IsNot Nothing Then
+            result.Add(New BEQInstruction(destination))
+        End If
+        Return result
     End Function
 
-    Function WHILE_RNEI(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' WHILE R1 <> 100
-        '   0   1  2  3
-        WHILECount += 1
-        Return New List(Of MemoryLocation)() From {New Label($"WHILE{WHILECount}"),
-                                                   New CMPImmediateInstruction(t(1).r, t(3).i),
-                                                   New BEQInstruction($"ENDWHILE{WHILECount}")}
-    End Function
-
+#Disable Warning IDE0060 ' Remove unused parameter
     Function ENDWHILE(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+#Enable Warning IDE0060 ' Remove unused parameter
         ' END WHILE
         '   0   1
         WHILECount -= 1
         Return New List(Of MemoryLocation)() From {New BInstruction($"WHILE{WHILECount + 1}"),
                                                    New Label($"ENDWHILE{WHILECount + 1}")}
+    End Function
+
+    Function DATAStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' DATA 100
+        '   0   1
+        Return New List(Of MemoryLocation)() From {New Data(t(1).i)}
     End Function
 #End Region
 End Module

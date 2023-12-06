@@ -237,5 +237,49 @@ Namespace HLA_VB_Tests
             Assert.AreEqual(1225, r(1)) ' 1225 since the 50 doesn't get added!
         End Sub
 
+
+        <TestMethod>
+        Sub TestCodeGeneration12()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program = New List(Of String)() From {"R1 = 0", "R9 = 50", "R0 =0",
+                                                      "REPEAT",
+                                                            "R1 = R1 + R9",
+                                                            "R9 = R9 - 1",
+                                                      "UNTIL R9 < R0",
+                                                      "HALT"}
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            Assert.AreEqual(0, errors.Count)
+            ExecuteProgram(m, r)
+            Assert.AreEqual(1275, r(1))
+        End Sub
+
+        <TestMethod>
+        Sub TestCodeGeneration13()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program = New List(Of String)() From {"R1 = 0", "R9 = 0", "R0 =50",
+                                                      "REPEAT",
+                                                            "R1 = R1 + R9",
+                                                            "R9 = R9 + 1",
+                                                      "UNTIL R9 > R0",
+                                                      "HALT"}
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            Assert.AreEqual(0, errors.Count)
+            ExecuteProgram(m, r)
+            Assert.AreEqual(1275, r(1))
+        End Sub
     End Class
 End Namespace

@@ -35,6 +35,31 @@ Namespace HLA_VB_Tests
                 d.AddLabel("Start")
                 Assert.AreEqual($"{"Start:".PadRight(TotalWidth)}-15", d.ToString())
             End Sub
+
+            <TestMethod>
+            Sub TestData4()
+                Dim m As Memory
+                Dim r As Registers
+                Dim errors As List(Of String)
+
+                Dim program = New List(Of String)() From {"R1 = Memory[Zero]", "R9 = memory[Initial]", "R0 = memory[final]",
+                                                          "REPEAT",
+                                                                "R1 = R1 + R9",
+                                                                "R9 = R9 - 1",
+                                                          "UNTIL R9 < R0",
+                                                          "HALT",
+                                                          "Zero: data 0",
+                                                          "initial: data 50",
+                                                          "final: data 0"}
+                With CompileHLA(program)
+                    m = .assembly
+                    r = .registers
+                    errors = .errorList
+                End With
+                Assert.AreEqual(0, errors.Count)
+                ExecuteProgram(m, r)
+                Assert.AreEqual(1275, r(1))
+            End Sub
         End Class
 
     End Class

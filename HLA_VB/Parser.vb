@@ -4,7 +4,6 @@ Imports HLA_VB.HLA_VB.Scanner
 
 Public Class Parser
 
-    ' TODO: we could reduce the number of patterns here by allowing capturing of operators and register/immediate
     Public Shared ReadOnly patterns As New List(Of (pattern As IEnumerable(Of Token), generator As Func(Of List(Of Token), List(Of MemoryLocation)))) From
 {
 ("R0 = MEMORY[100]".ToTokens(), AddressOf LDRDirect),
@@ -17,16 +16,15 @@ Public Class Parser
 ("IF R0 ?o ?2 GOTO Start".ToTokens(), AddressOf IFStatement),
 ("GOTO Label".ToTokens(), AddressOf BAlwaysLabel),
 ("HALT".ToTokens(), AddressOf HALT),
-("FOR R1 = ?2 TO ?2".ToTokens(), AddressOf FORTo),
-("FOR R1 = ?2 DOWNTO ?2".ToTokens(), AddressOf FORDownto),
+("FOR R1 = ?2 TO ?2".ToTokens(), AddressOf FORTOStatement),
+("FOR R1 = ?2 DOWNTO ?2".ToTokens(), AddressOf FORDOWNTOStatement),
 ("END FOR".ToTokens(), AddressOf ENDFOR),
-("REPEAT".ToTokens(), AddressOf REPEAT_Statement),
-("UNTIL R1 ?o ?2".ToTokens(), AddressOf UNTIL_Statement),
-("WHILE R1 <> R2".ToTokens(), AddressOf WHILE_RNER),
-("WHILE R1 <> 100".ToTokens(), AddressOf WHILE_RNEI),
-("END WHILE".ToTokens(), AddressOf ENDWHILE)
-    }
-
+("REPEAT".ToTokens(), AddressOf REPEATStatement),
+("UNTIL R1 ?o ?2".ToTokens(), AddressOf UNTILStatement),
+("WHILE R1 ?o ?2".ToTokens(), AddressOf WHILEStatement),
+("END WHILE".ToTokens(), AddressOf ENDWHILE),
+("DATA 100".ToTokens(), AddressOf DATAStatement)
+}
     ' TODO: consider if we want to allow branch instructions to address without labels
-
+    ' TODO: the LDR and STR could be condensed if we have a wildcard that can match an integer or an identifier
 End Class

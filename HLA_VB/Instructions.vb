@@ -328,10 +328,10 @@ Namespace HLA_VB
         MustInherit Class MemoryReferenceInstruction
             Inherits Instruction
 
-            Protected Rd As Integer
+            public Rd As Integer
 
-            Protected location As Integer
-            Protected locationLabel As String
+            Public location As Integer
+            Public locationLabel As String
 
             Sub New(toFromRegister As Integer, location As Integer)
                 If Registers.ValidRegister(toFromRegister) Then
@@ -350,6 +350,7 @@ Namespace HLA_VB
                 If Registers.ValidRegister(toFromRegister) Then
                     Rd = toFromRegister
                     Me.locationLabel = location
+                    Me.location = BranchInstruction.InvalidAddress
                 Else
                     Throw New IndexOutOfRangeException($"Invalid register number {toFromRegister}")
                 End If
