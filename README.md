@@ -7,8 +7,9 @@ No control structures implemented. Requires C# V12 and .NET 8 to compile.
 No unit tests.
 
 ## VB.NET
-Second implementation (make sure you use the `control_structures` branch.) Much nicer style (I think: write one, throw it away and write it correctly the second time) and the parsing system is much easier to extend.
+Second implementation (make sure you use the `control_structures` branch.) Much nicer style (I think: write one, throw it away and write it correctly the second time) and the parsing system is *much* easier to extend.
 Over 100 unit tests.
+Still some work to do on the UI.
 
 ## Python 3
 Third implementation. Not started yet.
