@@ -24,7 +24,7 @@
         public const int NUMBER_OF_REGISTERS = 16;
         public const int NUMBER_OF_MEMORY_LOCATIONS = 1024;
 
-        public const string MEMORY = "MEM";                    // Could change to Memory, M, RAM etc
+        public const string MEMORY = "MEMORY";                    // Could change to Memory, M, RAM etc
         public const string MEMORY_ACCESS_START = "[";         // Change to MEM( for VB.NET indexing style and
         public const string MEMORY_ACCESS_END = "]";           //  change to )
         public const string ASSIGNMENT = "=";                  // Could be <-, :=, <=
@@ -596,6 +596,7 @@
                                     }
                                     break;
                                 case "MEM":
+                                case "MEMORY":
                                     // (MEM [ <memory ref> ] = Rd) => STR  Rd, <memory ref>
                                     //  0   1 2            3 4 5
                                     if (tokens.Count() == 6 &&

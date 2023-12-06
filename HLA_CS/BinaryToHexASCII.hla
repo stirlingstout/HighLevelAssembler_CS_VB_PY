@@ -1,7 +1,7 @@
 R0 = 63
-MEM[Binary] = R0
+MEMORY[Binary] = R0
 
-R1 = MEM[Binary]
+R1 = MEMORY[Binary]
 R2 = R1 & 15
 R3 = R1 & 240
 R3 = R3 >> 4
@@ -11,8 +11,8 @@ Digit2: R2 = R2 + 48
 IF R3 < 10 GOTO Digit1
 R3 = R3 + 7
 Digit1: R3 = R3 + 48
-MEM[HEXDigit1] = R3
-MEM[HEXDigit2] = R2
+MEMORY[HEXDigit1] = R3
+MEMORY[HEXDigit2] = R2
 END
 
 

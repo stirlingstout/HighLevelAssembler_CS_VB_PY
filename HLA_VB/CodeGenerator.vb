@@ -276,6 +276,15 @@ Module CodeGenerator
                                                    New BEQInstruction($"ENDWHILE{WHILECount}")}
     End Function
 
+    Function WHILE_RNEI(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' WHILE R1 <> 100
+        '   0   1  2  3
+        WHILECount += 1
+        Return New List(Of MemoryLocation)() From {New Label($"WHILE{WHILECount}"),
+                                                   New CMPImmediateInstruction(t(1).r, t(3).i),
+                                                   New BEQInstruction($"ENDWHILE{WHILECount}")}
+    End Function
+
     Function ENDWHILE(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
         ' END WHILE
         '   0   1

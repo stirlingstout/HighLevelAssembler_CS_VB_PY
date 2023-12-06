@@ -232,7 +232,7 @@ Namespace HLA_VB_Tests
                 r = .registers
                 errors = .errorList
             End With
-            Assert.AreEqual(0, errors.Count)
+            adding wildcard matching To Assert.AreEqual(0, errors.Count)
             ExecuteProgram(m, r)
             Assert.AreEqual(1225, r(1)) ' 1225 since the 50 doesn't get added!
         End Sub

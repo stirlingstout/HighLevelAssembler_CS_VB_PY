@@ -42,6 +42,7 @@ Public Class Parser
 ("UNTIL R1 > R2".ToTokens(), AddressOf UNTIL_RGTR),
 ("UNTIL R1 <> R2".ToTokens(), AddressOf UNTIL_RNER),
 ("WHILE R1 <> R2".ToTokens(), AddressOf WHILE_RNER),
+("WHILE R1 <> 100".ToTokens(), AddressOf WHILE_RNEI),
 ("END WHILE".ToTokens(), AddressOf ENDWHILE)
     }
 
