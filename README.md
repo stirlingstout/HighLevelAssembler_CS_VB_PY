@@ -7,11 +7,11 @@ No control structures implemented. Requires C# V12 and .NET 8 to compile.
 No unit tests.
 
 ## VB.NET
-Second implementation (make sure you use the `control_structures' branch.) Much nicer style (I think: write one, throw it away and write it correctly the second time) and the parsing system is much easier to extend.
+Second implementation (make sure you use the `control_structures` branch.) Much nicer style (I think: write one, throw it away and write it correctly the second time) and the parsing system is much easier to extend.
 Over 100 unit tests.
 
 ## Python 3
-Third implementaiton. Not started yet.
+Third implementaton. Not started yet.
 
 ## Summary
 Low-level language programming is hard. Assembly language programming is hard. High-level languages were developed to make programming easier. If students are to learn the concepts of assembly language programming it may help to start by programming in a language that is halfway between the high-level language they are (one hopes) used to and the AQA assembly language instruction set. HighLevelAssembler (HLA) is a language that tries to be that 'bridge' language.
