@@ -181,7 +181,7 @@ Namespace HLA_VB_Tests
                                                       "REPEAT",
                                                             "R1 = R1 + R9",
                                                             "R9 = R9 - 1",
-                                                      "UNTIL R9 < R0",
+                                                      "UNTIL R9 <= R0",
                                                       "HALT"}
             With CompileHLA(program)
                 m = .assembly
@@ -203,7 +203,7 @@ Namespace HLA_VB_Tests
                                                       "REPEAT",
                                                             "R1 = R1 + R9",
                                                             "R9 = R9 + 1",
-                                                      "UNTIL R9 > R0",
+                                                      "UNTIL R9 >= R0",
                                                       "HALT"}
             With CompileHLA(program)
                 m = .assembly
@@ -212,7 +212,7 @@ Namespace HLA_VB_Tests
             End With
             Assert.AreEqual(0, errors.Count)
             ExecuteProgram(m, r)
-            Assert.AreEqual(1275, r(1))
+            Assert.AreEqual(1225, r(1))
         End Sub
 
         <TestMethod>

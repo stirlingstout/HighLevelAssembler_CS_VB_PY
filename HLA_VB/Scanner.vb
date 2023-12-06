@@ -171,7 +171,7 @@ Namespace HLA_VB
                     Select Case ch
                         Case "?"
                             NextCharacter()
-                            sym = ch                ' ?2 matches a register or an integer, ?o matches an operator, ?i matches an identifier
+                            sym = Char.ToUpper(ch)                ' ?2 matches a register or an integer, ?o matches an operator, ?i matches an identifier
                             type = TokenType.Wildcard
                             NextCharacter()
                         Case ",", "#", "[", "]", "(", ")", ":"
@@ -255,9 +255,9 @@ Namespace HLA_VB
                 Select Case second.w
                     Case "2" ' <operand2>: either an integer literal or a register
                         result = (first.type = TokenType.IntegerLiteral OrElse first.type = TokenType.Register)
-                    Case "i"
+                    Case "I"
                         result = (first.type = TokenType.Identifier)
-                    Case "o"
+                    Case "O"
                         result = (first.type = TokenType.Symbol)
                     Case Else
                         Debug.Fail($"Unrecognised wildcard {second.w}")

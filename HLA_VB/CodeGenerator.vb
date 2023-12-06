@@ -6,10 +6,11 @@ Imports HLA_VB.HLA_VB.Scanner
 Module CodeGenerator
 
     ' These functions take a list of tokens representing the current line and return a list of
-    ' memory locations/instructions. List because IF ... GOTO generates two instructions
+    ' memory locations/instructions. List because IF ... GOTO generates two instructions and some of the
+    ' control structures generate even more
     Function LDRDirect(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
         ' Rd = MEMORY[100]
-        ' 0  1  2 3 4 5
+        ' 0  1  2    3 4 5
         Return New List(Of MemoryLocation)() From {New LoadInstructionDirect(t(0).r, t(4).i)}
     End Function
 
@@ -31,131 +32,110 @@ Module CodeGenerator
         Return New List(Of MemoryLocation)() From {New StoreInstructionDirect(t(5).r, t(2).id)}
     End Function
 
-    Function ADDRegister(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = Rn + Rm
-        ' 0  1 2  3 4
-        Return New List(Of MemoryLocation)() From {New ADDRegisterInstruction(t(0).r, t(2).r, t(4).r)}
+    Function ArithmeticOperation(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' Rd = Rn ?o ?2
+        ' 0  1 2  3  4
+        Dim i As Instruction
+        Select Case t(3).sym
+            Case "+"
+                If t(4).type = TokenType.IntegerLiteral Then
+                    i = New ADDImmediateInstruction(t(0).r, t(2).r, t(4).i)
+                Else
+                    i = New ADDRegisterInstruction(t(0).r, t(2).r, t(4).r)
+                End If
+            Case "-"
+                If t(4).type = TokenType.IntegerLiteral Then
+                    i = New SUBImmediateInstruction(t(0).r, t(2).r, t(4).i)
+                Else
+                    i = New SUBRegisterInstruction(t(0).r, t(2).r, t(4).r)
+                End If
+            Case "<<"
+                If t(4).type = TokenType.IntegerLiteral Then
+                    i = New LSLImmediateInstruction(t(0).r, t(2).r, t(4).i)
+                Else
+                    i = New LSLRegisterInstruction(t(0).r, t(2).r, t(4).r)
+                End If
+            Case ">>"
+                If t(4).type = TokenType.IntegerLiteral Then
+                    i = New LSRImmediateInstruction(t(0).r, t(2).r, t(4).i)
+                Else
+                    i = New LSRRegisterInstruction(t(0).r, t(2).r, t(4).r)
+                End If
+            Case Else
+                Debug.Fail($"Invalid operator match for {t(3).sym}")
+                i = Nothing
+        End Select
+        Return New List(Of MemoryLocation)() From {i}
     End Function
 
-
-    Function ADDImmediate(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = Rn + 45
-        ' 0  1 2  3 4
-        Return New List(Of MemoryLocation)() From {New ADDImmediateInstruction(t(0).r, t(2).r, t(4).i)}
+    Function LogicOperation(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' Rd = Rn ?i ?2
+        ' 0  1 2  3  4
+        Dim i As Instruction
+        Select Case t(3).id
+            Case "AND"
+                If t(4).type = TokenType.IntegerLiteral Then
+                    i = New ANDImmediateInstruction(t(0).r, t(2).r, t(4).i)
+                Else
+                    i = New ANDRegisterInstruction(t(0).r, t(2).r, t(4).r)
+                End If
+            Case "OR"
+                If t(4).type = TokenType.IntegerLiteral Then
+                    i = New ORRImmediateInstruction(t(0).r, t(2).r, t(4).i)
+                Else
+                    i = New ORRRegisterInstruction(t(0).r, t(2).r, t(4).r)
+                End If
+            Case "EOR"
+                If t(4).type = TokenType.IntegerLiteral Then
+                    i = New EORImmediateInstruction(t(0).r, t(2).r, t(4).i)
+                Else
+                    i = New EORRegisterInstruction(t(0).r, t(2).r, t(4).r)
+                End If
+            Case Else
+                Debug.Fail($"Invalid operator match for {t(3).sym}")
+                i = Nothing
+        End Select
+        Return New List(Of MemoryLocation)() From {i}
     End Function
 
-    Function SUBRegister(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = Rn + Rm
-        ' 0  1 2  3 4
-        Return New List(Of MemoryLocation)() From {New SUBRegisterInstruction(t(0).r, t(2).r, t(4).r)}
-    End Function
-
-    Function SUBImmediate(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = Rn + 45
-        ' 0  1 2  3 4
-        Return New List(Of MemoryLocation)() From {New SUBImmediateInstruction(t(0).r, t(2).r, t(4).i)}
-    End Function
-
-    Function ANDRegister(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = Rn + Rm
-        ' 0  1 2  3 4
-        Return New List(Of MemoryLocation)() From {New ANDRegisterInstruction(t(0).r, t(2).r, t(4).r)}
-    End Function
-
-    Function ANDImmediate(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = Rn + 45
-        ' 0  1 2  3 4
-        Return New List(Of MemoryLocation)() From {New ANDImmediateInstruction(t(0).r, t(2).r, t(4).i)}
-    End Function
-
-    Function ORRRegister(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = Rn + Rm
-        ' 0  1 2  3 4
-        Return New List(Of MemoryLocation)() From {New ORRRegisterInstruction(t(0).r, t(2).r, t(4).r)}
-    End Function
-
-    Function ORRImmediate(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = Rn + 45
-        ' 0  1 2  3 4
-        Return New List(Of MemoryLocation)() From {New ORRImmediateInstruction(t(0).r, t(2).r, t(4).i)}
-    End Function
-
-    Function EORRegister(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = Rn + Rm
-        ' 0  1 2  3 4
-        Return New List(Of MemoryLocation)() From {New EORRegisterInstruction(t(0).r, t(2).r, t(4).r)}
-    End Function
-
-    Function EORImmediate(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = Rn + 45
-        ' 0  1 2  3 4
-        Return New List(Of MemoryLocation)() From {New EORImmediateInstruction(t(0).r, t(2).r, t(4).i)}
-    End Function
-
-    Function LSLRegister(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = Rn + Rm
-        ' 0  1 2  3 4
-        Return New List(Of MemoryLocation)() From {New LSLRegisterInstruction(t(0).r, t(2).r, t(4).r)}
-    End Function
-
-    Function LSLImmediate(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = Rn + 45
-        ' 0  1 2  3 4
-        Return New List(Of MemoryLocation)() From {New LSLImmediateInstruction(t(0).r, t(2).r, t(4).i)}
-    End Function
-
-    Function LSRRegister(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = Rn + Rm
-        ' 0  1 2  3 4
-        Return New List(Of MemoryLocation)() From {New LSRRegisterInstruction(t(0).r, t(2).r, t(4).r)}
-    End Function
-
-    Function LSRImmediate(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = Rn + 45
-        ' 0  1 2  3 4
-        Return New List(Of MemoryLocation)() From {New LSRImmediateInstruction(t(0).r, t(2).r, t(4).i)}
-    End Function
-
-    Function MOVRegister(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = Rm
+    Function MOVOperation(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' Rd = ?2
         ' 0  1 2
-        Return New List(Of MemoryLocation)() From {New MOVRegisterInstruction(t(0).r, t(2).r)}
+        If t(2).type = TokenType.Register Then
+            Return New List(Of MemoryLocation)() From {New MOVRegisterInstruction(t(0).r, t(2).r)}
+        Else
+            Return New List(Of MemoryLocation)() From {New MOVImmediateInstruction(t(0).r, t(2).i)}
+        End If
     End Function
 
-    Function MOVImmediate(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = 45
-        ' 0  1 2
-        Return New List(Of MemoryLocation)() From {New MOVImmediateInstruction(t(0).r, t(2).i)}
-    End Function
-
-    Function IFStatementRLTRegister(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' IF Rn < Rm GOTO Start (these two functions may become 4 if we allow branches to addresses)
-        ' 0  1  2 3  4    5
-        Return New List(Of MemoryLocation)() From {New CMPRegisterInstruction(t(1).r, t(3).r), New BLTInstruction(t(5).id)}
-    End Function
-
-    Function IFStatementRLTImmediate(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' IF Rn < 56 GOTO Start
-        ' 0  1  2 3  4    5
-        Return New List(Of MemoryLocation)() From {New CMPImmediateInstruction(t(1).r, t(3).i), New BLTInstruction(t(5).id)}
+    Function IFStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' IF Rn ?o  ?2 GOTO Start (may need another wildcard if we allow labels and integers, i.e., branches to direct addresses)
+        ' 0  1  2   3  4    5
+        Dim c As Instruction, b As Instruction
+        If t(3).type = TokenType.Register Then
+            c = New CMPRegisterInstruction(t(1).r, t(3).r)
+        Else
+            c = New CMPImmediateInstruction(t(1).r, t(3).i)
+        End If
+        Select Case t(2).sym
+            Case "<"
+                b = New BLTInstruction(t(5).id)
+            Case ">"
+                b = New BGTInstruction(t(5).id)
+            Case "="
+                b = New BEQInstruction(t(5).id)
+            Case "<>"
+                b = New BNEInstruction(t(5).id)
+            Case Else
+                Debug.Fail($"Invalid operator {t(2).sym} in IF statement")
+        End Select
+        Return New List(Of MemoryLocation)() From {c, b}
     End Function
 
     Function BAlwaysLabel(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
         ' GOTO Start
         ' 0      1
         Return New List(Of MemoryLocation)() From {New BInstruction(t(1).id)}
-    End Function
-
-    Function IFStatementRGTRegister(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' IF Rn < Rm GOTO Start (these two functions may become 4 if we allow branches to addresses)
-        ' 0  1  2 3  4    5
-        Return New List(Of MemoryLocation)() From {New CMPRegisterInstruction(t(1).r, t(3).r), New BGTInstruction(t(5).id)}
-    End Function
-
-    Function IFStatementRGTImmediate(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' IF Rn < 56 GOTO Start
-        ' 0  1  2 3  4    5
-        Return New List(Of MemoryLocation)() From {New CMPImmediateInstruction(t(1).r, t(3).i), New BGTInstruction(t(5).id)}
     End Function
 
 #Disable Warning IDE0060 ' Remove unused parameter
@@ -185,7 +165,7 @@ Module CodeGenerator
     End Sub
 
 #Disable Warning IDE0060 ' Remove unused parameter
-    Function REPEAT(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function REPEAT_Statement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
 #Enable Warning IDE0060 ' Remove unused parameter
         ' REPEAT
         ' 0
@@ -193,60 +173,74 @@ Module CodeGenerator
         Return New List(Of MemoryLocation)() From {New Label($"REPEAT{REPEATCount}")}
     End Function
 
-    Function UNTIL_REQR(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' UNTIL R1 = R2
-        ' 0     1  2 3
+    Function UNTIL_Statement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' UNTIL R1 ?o ?2
+        ' 0     1  2  3
         REPEATCount -= 1
-        Return New List(Of MemoryLocation)() From {New CMPRegisterInstruction(t(1).r, t(3).r),
-                                                   New BNEInstruction($"REPEAT{REPEATCount + 1}")}
+
+        Dim c, b As Instruction
+        If t(3).type = TokenType.Register Then
+            c = New CMPRegisterInstruction(t(1).r, t(3).r)
+        Else
+            c = New CMPImmediateInstruction(t(1).r, t(3).i)
+        End If
+        Select Case t(2).sym
+            Case "<="
+                b = New BGTInstruction($"REPEAT{REPEATCount + 1}")
+            Case ">="
+                b = New BLTInstruction($"REPEAT{REPEATCount + 1}")
+            Case "="
+                b = New BNEInstruction($"REPEAT{REPEATCount + 1}")
+            Case "<>"
+                b = New BEQInstruction($"REPEAT{REPEATCount + 1}")
+            Case Else
+                Debug.Fail($"Invalid operator {t(2).sym} in UNTIL statement")
+                b = Nothing
+        End Select
+        Return New List(Of MemoryLocation)() From {c, b}
     End Function
 
-
-    Function UNTIL_RLTR(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' UNTIL R1 < R2
-        ' 0     1  2 3
-        REPEATCount -= 1
-        Return New List(Of MemoryLocation)() From {New CMPRegisterInstruction(t(1).r, t(3).r),
-                                                   New BGTInstruction($"REPEAT{REPEATCount + 1}"),
-                                                   New BEQInstruction($"REPEAT{REPEATCount + 1}")}
-    End Function
-
-    Function UNTIL_RGTR(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' UNTIL R1 > R2
-        ' 0     1  2 3
-        REPEATCount -= 1
-        Return New List(Of MemoryLocation)() From {New CMPRegisterInstruction(t(1).r, t(3).r),
-                                                   New BLTInstruction($"REPEAT{REPEATCount + 1}"),
-                                                   New BEQInstruction($"REPEAT{REPEATCount + 1}")}
-    End Function
-
-    Function UNTIL_RNER(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' UNTIL R1 <> R2
-        ' 0     1  2 3
-        REPEATCount -= 1
-        Return New List(Of MemoryLocation)() From {New CMPRegisterInstruction(t(1).r, t(3).r),
-                                                   New BEQInstruction($"REPEAT{REPEATCount + 1}")}
-    End Function
-
-    Function FORIntegerToInteger(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' FOR R1 = 1 TO 10
-        '  0  1  2 3 4  5
+    Function FORTo(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' FOR R1 = ?2 TO ?2
+        '  0  1  2 3  4  5
         FORCount += 1
         FORLoops.Push((t(1).r, True))
-        Return New List(Of MemoryLocation)() From {New MOVImmediateInstruction(t(1).r, t(3).i),
+        Dim m, c, b As Instruction
+        If t(3).type = TokenType.Register Then
+            m = New MOVRegisterInstruction(t(1).r, t(3).r)
+        Else
+            m = New MOVImmediateInstruction(t(1).r, t(3).i)
+        End If
+        If t(5).type = TokenType.Register Then
+            c = New CMPRegisterInstruction(t(1).r, t(5).r)
+        Else
+            c = New CMPImmediateInstruction(t(1).r, t(5).i)
+        End If
+        Return New List(Of MemoryLocation)() From {m,
                                                    New Label($"FOR{FORCount}"),
-                                                   New CMPImmediateInstruction(t(1).r, t(5).i),
+                                                   c,
                                                    New BGTInstruction($"ENDFOR{FORCount}")}
     End Function
 
-    Function FORIntegerDownToInteger(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' FOR R1 = 100 DOWNTO 1
-        '  0  1  2 3     4   5
+    Function FORDownto(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' FOR R1 = ?2 DOWNTO ?2
+        '  0  1  2 3  4      5
         FORCount += 1
         FORLoops.Push((t(1).r, False))
-        Return New List(Of MemoryLocation)() From {New MOVImmediateInstruction(t(1).r, t(3).i),
+        Dim m, c, b As Instruction
+        If t(3).type = TokenType.Register Then
+            m = New MOVRegisterInstruction(t(1).r, t(3).r)
+        Else
+            m = New MOVImmediateInstruction(t(1).r, t(3).i)
+        End If
+        If t(5).type = TokenType.Register Then
+            c = New CMPRegisterInstruction(t(1).r, t(5).r)
+        Else
+            c = New CMPImmediateInstruction(t(1).r, t(5).i)
+        End If
+        Return New List(Of MemoryLocation)() From {m,
                                                    New Label($"FOR{FORCount}"),
-                                                   New CMPImmediateInstruction(t(1).r, t(5).i),
+                                                   c,
                                                    New BLTInstruction($"ENDFOR{FORCount}")}
     End Function
 
