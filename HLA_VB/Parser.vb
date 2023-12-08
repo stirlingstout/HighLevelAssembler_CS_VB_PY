@@ -13,7 +13,7 @@ Public Class Parser
 ("R0 = R1 ?o ?2".ToTokens(), AddressOf ArithmeticOperation),
 ("R0 = R1 ?i R2".ToTokens(), AddressOf LogicOperation),
 ("R0 = ?2".ToTokens(), AddressOf MOVOperation),
-("IF R0 ?o ?2 GOTO Start".ToTokens(), AddressOf IFStatement),
+("IF R0 ?o ?2 GOTO Start".ToTokens(), AddressOf SimpleIFStatement),
 ("GOTO Label".ToTokens(), AddressOf BAlwaysLabel),
 ("HALT".ToTokens(), AddressOf HALT),
 ("FOR R1 = ?2 TO ?2".ToTokens(), AddressOf FORTOStatement),

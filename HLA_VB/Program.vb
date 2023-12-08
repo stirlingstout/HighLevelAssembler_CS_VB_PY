@@ -3,8 +3,10 @@ Imports System.Data
 Imports System.Diagnostics.Tracing
 Imports System.IO
 Imports System.Net.NetworkInformation
+Imports System.Reflection
 Imports System.Reflection.Emit
 Imports System.Runtime.CompilerServices
+Imports System.Runtime.InteropServices.JavaScript.JSType
 Imports System.Threading
 Imports System.Xml.Schema
 
@@ -147,6 +149,7 @@ Namespace HLA_VB
 
             For Each location In m
                 If TypeOf location Is BranchInstruction Then
+                    ' TODO: see if you can get rid of CType
                     With CType(location, BranchInstruction)
                         If .destination = BranchInstruction.InvalidAddress Then
                             If Not symbolTable.TryGetValue(.destinationLabel, .destination) Then
@@ -170,12 +173,17 @@ Namespace HLA_VB
 
         Sub DisplayErrors(program As List(Of String), errorList As List(Of String))
             For Each errorMessage In errorList
-                Console.WriteLine(program.Count)
+                Console.WriteLine(errorMessage)
             Next
         End Sub
 
         Sub DisplayAssembly(m As Memory)
             Debug.Assert(m IsNot Nothing)
+            For Each word As MemoryLocation In m
+                If word.HasContents Then
+                    Console.WriteLine($"{word}")
+                End If
+            Next
         End Sub
 
         Sub ExecuteProgram(m As Memory, r As Registers)
@@ -201,8 +209,8 @@ Namespace HLA_VB
 
         Sub Main(args As String())
             Dim program As New List(Of String)
-            Dim m As Memory
-            Dim r As Registers
+            Dim m As New Memory()
+            Dim r As New Registers()
 
             Do
                 DisplayMenu()
@@ -211,6 +219,7 @@ Namespace HLA_VB
                         program = LoadHLAFile(program)
                     Case "D"
                         DisplayHLA(program)
+                        DisplayAssembly(m)
                     Case "C", "T"
                         If program.Count > 0 Then
                             With CompileHLA(program)
@@ -230,8 +239,10 @@ Namespace HLA_VB
                         ExecuteProgram(m, r)
                     Case "N"
                         program = NewHLAProgram()
+                        m.Clear()
                     Case "H", "?"
                         DisplayHelp()
+                        ' TODO: complete HELP file contents
                     Case "Q"
                         Exit Do
                     Case Else

@@ -1,5 +1,19 @@
 # HighLevelAssembler
 
+## NOTES ON THE THREE IMPLEMENTATIONS
+## C#
+First implementation and the first large C# program I've written. Style is not brilliant, but as an experiment with C# it's been very useful.
+No control structures implemented. Requires C# V12 and .NET 8 to compile.
+No unit tests.
+
+## VB.NET
+Second implementation (make sure you use the `control_structures` branch.) Much nicer style (I think: write one, throw it away and write it correctly the second time) and the parsing system is *much* easier to extend.
+Over 100 unit tests.
+Still some work to do on the UI.
+
+## Python 3
+Third implementation. Not started yet.
+
 ## Summary
 Low-level language programming is hard. Assembly language programming is hard. High-level languages were developed to make programming easier. If students are to learn the concepts of assembly language programming it may help to start by programming in a language that is halfway between the high-level language they are (one hopes) used to and the AQA assembly language instruction set. HighLevelAssembler (HLA) is a language that tries to be that 'bridge' language.
 
@@ -97,3 +111,7 @@ DATA number                   => Reserves a memory location and initialises its 
                                  to number
                                  Executing a DATA location causes an error
 ```  
+
+## Control structures
+
+The grammar for these has not been written yet, but looking at the `Parser.vb` file and the `UnitTest_CodeGeneration.vb` files should give you the main ideas. The old AQA specification had a section on translating HLL control structures into assembler for which this would have been very useful.

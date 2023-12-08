@@ -1,0 +1,70 @@
+High Level Assembler (HLA) compiler / interpreter
+
+This program is designed to help you get to grips with AQA assembly language by
+allowing you to write statements in a very simple high level language (called HLA) which
+can be compiled to AQA assembly language.
+
+You can load in a file or just type the HLA statements, and then compile them.
+
+The only statement which compiles to more than a single line of assembly language is IF (see below).
+
+You have a HLL with 16 R (for Register) variables called R0, R1, R2, ..., R15 and one array called MEMORY, with 1024
+elements numbered 0 to 1023.
+
+You can do the following simple operations with the R variables (the AQA assembly 'translation' is given for 
+each statement along with one or more examples; anything after -- to the end of the line is a comment):
+
+HLA (memory operations)                     Translation           Example(s)
+-----------------------------------------------------------------------------------------------------------------
+R<d> = MEMORY[<address>]                       LDR  R<d>, <address>  R0 = MEMORY[25] 
+                                                                  -- load R0 with the contents of MEMORY[25]
+
+                                                                  R5 = MEMORY[First]
+                                                                  -- load R5 with the contents of a memory
+                                                                  -- location that has been given the label First
+                                                                  -- (see the DATA pseudo-instruction)
+
+MEMORY{<address>] = Rd                         STR  Rd, <address>  -- MEMORY[19] = R7
+                                                                -- store the contents in R7 into MEMORY[19]
+                                                                -- NOTE: you cannot write MEMORY[19] = 257
+                                                                -- but must copy 257 into a register first, e.g.,
+                                                                -- R0 = 257
+                                                                -- MEMORY[19] = R0
+=page=
+HLA (arithmetic logic operations)           Translation                  Example(s)
+-----------------------------------------------------------------------------------------------------------------
+R<d> = R<n> <alop> <operand2>               <op>  R<d>, R<n>, <operand2> R0 = R0 + R2
+                                                                         -- add the contents of R2 and the contents
+                                                                         -- of R2 together and place the result in 
+                                                                         -- R0
+
+                                                                         R5 = R6 + 48
+                                                                         -- add 48 to R6 and put the result in R5
+                                                                         -- <alop> is one of +, -, <<, >>, AND, OR, XOR
+
+
+
+
+
+R<d> = <operand2>                           MOV  R<d>, <operand2> R1 = R2
+                                                                  -- copy the contents of R2 into R1
+                                                                  R3 = 257
+                                                                  -- copy the value 257 into R3
+IF R<d> <condition> <operand2> GOTO <label> 
+
+
+Notes
+
+Case is not significant in an HLA program so you can write R0 or r0 to refer to an R variable, and MEMORY, Memory, or memory
+to refer to the memory array. All labels are converted to uppercase.
+
+The processor being simulated will not allow the overwriting of your program.
+
+=page=
+Control structures
+------------------
+
+This version of HLA allows high-level control structures to be used. The structures implemented are:
+
+REPEAT
+UNTIL R<d> <relop> 

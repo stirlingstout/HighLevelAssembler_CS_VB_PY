@@ -10,7 +10,7 @@ Namespace HLA_VB
 
             Private ReadOnly words(HIGHEST_MEMORY_ADDRESS) As MemoryLocation
 
-            Private currentLocation As Integer
+            Private currentLocation As Integer = -1
             Public Function GetEnumerator() As IEnumerator Implements IEnumerable.GetEnumerator
                 Return CType(Me, IEnumerator)
             End Function
@@ -59,7 +59,7 @@ Namespace HLA_VB
                     If ValidAddress(address) Then
                         words(address) = value
                     Else
-                        Throw New IndexOutOfRangeException($"Invalid register number: {address}")
+                        Throw New IndexOutOfRangeException($"Invalid memory address: {address}")
                     End If
                 End Set
             End Property
@@ -219,6 +219,12 @@ Namespace HLA_VB
                     Return True
                 End Get
             End Property
+
+            Public Overridable ReadOnly Property HasContents As Boolean
+                Get
+                    Return False
+                End Get
+            End Property
         End Class
 
         Class Data
@@ -258,6 +264,12 @@ Namespace HLA_VB
             Overrides Sub Execute(r As Registers)
                 Throw New DataException($"Attempt to execute data as arithmetic/logic instruction")
             End Sub
+
+            Public Overrides ReadOnly Property HasContents As Boolean
+                Get
+                    Return True
+                End Get
+            End Property
         End Class
 
         ''' <summary>
@@ -321,6 +333,12 @@ Namespace HLA_VB
             Overloads Sub Clear()
                 MyBase.Clear()
             End Sub
+
+            Public Overrides ReadOnly Property HasContents As Boolean
+                Get
+                    Return True
+                End Get
+            End Property
 
         End Class
 

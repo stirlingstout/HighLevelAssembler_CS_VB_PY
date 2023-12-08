@@ -1,4 +1,5 @@
-﻿Imports System.Runtime.CompilerServices
+﻿Imports System.Data
+Imports System.Runtime.CompilerServices
 Imports System.Security.Cryptography
 Imports HLA_VB.HLA_VB.Instructions
 Imports HLA_VB.HLA_VB.Scanner
@@ -108,7 +109,7 @@ Module CodeGenerator
         End If
     End Function
 
-    Function IFStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function SimpleIFStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
         ' IF Rn ?o  ?2 GOTO Start (may need another wildcard if we allow labels and integers, i.e., branches to direct addresses)
         ' 0  1  2   3  4    5
         Dim c As Instruction, b As Instruction
@@ -127,7 +128,7 @@ Module CodeGenerator
             Case "<>"
                 b = New BNEInstruction(t(5).id)
             Case Else
-                Debug.Fail($"Invalid operator {t(2).sym} in IF statement")
+                Throw New Exception($"Invalid operator {t(2).sym} in IF statement")
         End Select
         Return New List(Of MemoryLocation)() From {c, b}
     End Function
@@ -264,16 +265,21 @@ Module CodeGenerator
         '  0
         FORCount -= 1
         Dim ChangeIndex As ArithmeticLogicInstruction
-        With FORLoops.Pop()
-            If .Incrementing Then
-                ChangeIndex = New ADDImmediateInstruction(.Rd, .Rd, 1)
-            Else
-                ChangeIndex = New SUBImmediateInstruction(.Rd, .Rd, 1)
-            End If
-        End With
-        Return New List(Of MemoryLocation)() From {ChangeIndex,
+        Dim f As (rd As Integer, Incrementing As Boolean)
+        If FORLoops.TryPop(f) Then
+            With f
+                If .Incrementing Then
+                    ChangeIndex = New ADDImmediateInstruction(.rd, .rd, 1)
+                Else
+                    ChangeIndex = New SUBImmediateInstruction(.rd, .rd, 1)
+                End If
+            End With
+            Return New List(Of MemoryLocation)() From {ChangeIndex,
                                                    New BInstruction($"FOR{FORCount + 1}"),
                                                    New Label($"ENDFOR{FORCount + 1}")}
+        Else
+            Throw New Exception($"END FOR without a corresponding FOR")
+        End If
     End Function
 
 
