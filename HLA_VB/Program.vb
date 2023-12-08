@@ -56,7 +56,7 @@ Namespace HLA_VB
         Sub DisplayHLA(program As List(Of String))
             Dim number = 1
             For Each line In program
-                Console.WriteLine($"{number,-4}  {line}")
+                Console.WriteLine($"{number,4}  {line}")
                 number += 1
             Next
         End Sub
