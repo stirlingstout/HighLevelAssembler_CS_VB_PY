@@ -99,7 +99,6 @@ Namespace HLA_VB
             Dim errors As New List(Of String)
 
             Dim symbolTable As New Dictionary(Of String, Integer)
-
             Dim AddLabel = Sub(label As String)
                                If Not symbolTable.TryAdd(label, r.PC) Then
                                    errors.Add($"Duplicate label {label}")
@@ -108,9 +107,10 @@ Namespace HLA_VB
 
             r.PC = 0
             ResetStructureCounts()
+            Dim labels As New List(Of String) ' Needs to be outside loop since we delay emitting a label sometimes (see END FOR code generation)
             For Each line In program
                 Dim s As IEnumerable(Of Token) = line.ToTokens()
-                Dim labels As New List(Of String)
+
                 Do While s.Count >= 2
                     If s.First().type = TokenType.Identifier AndAlso s(1).type = TokenType.Symbol AndAlso s(1).sym = ":" Then
                         labels.Add(s.First().id)
@@ -129,12 +129,14 @@ Namespace HLA_VB
                             For Each instruction In matches.First().generator(s.ToList()) ' .ToList() since labels cause s to become a skip iterator or something!
                                 If instruction.UsesMemory Then
                                     instruction.AddLabels(labels)
+                                    labels.Clear()
                                     m(r.PC) = instruction
 
                                     r.PC += 1 ' TODO: What about pseudo-operations?
                                 Else ' it's a label holder
                                     With CType(instruction, Label)
                                         AddLabel(.LabelText)
+                                        labels.Add(.LabelText)
                                     End With
                                 End If
                             Next
@@ -146,7 +148,9 @@ Namespace HLA_VB
                     End If
                 End If
             Next
-
+            If labels.Any() Then
+                errors.Add($"Some labels were left undefined {String.Join(", ", labels)}")
+            End If
             For Each location In m.Words()
                 If TypeOf location Is BranchInstruction Then
                     ' TODO: see if you can get rid of CType

@@ -232,8 +232,8 @@ Module CodeGenerator
         Else
             c = New CMPImmediateInstruction(t(1).r, t(5).i)
         End If
+        c.AddLabel($"FOR{FORCount}")
         Return New List(Of MemoryLocation)() From {m,
-                                                   New Label($"FOR{FORCount}"),
                                                    c,
                                                    New BGTInstruction($"ENDFOR{FORCount}")}
     End Function
@@ -254,8 +254,8 @@ Module CodeGenerator
         Else
             c = New CMPImmediateInstruction(t(1).r, t(5).i)
         End If
+        c.AddLabel($"FOR{FORCount}")
         Return New List(Of MemoryLocation)() From {m,
-                                                   New Label($"FOR{FORCount}"),
                                                    c,
                                                    New BLTInstruction($"ENDFOR{FORCount}")}
     End Function
@@ -282,11 +282,11 @@ Module CodeGenerator
         End If
     End Function
 
-
     Function WHILEStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
         ' WHILE R1 ?o ?2
         ' 0     1  2  3
         WHILECount += 1
+        Dim start = $"WHILE{WHILECount}", finish = $"ENDWHILE{WHILECount}"
 
         Dim c, b, beq As Instruction
         ' beq used to handle UNTIL < using a BGT and a BEQ.
@@ -298,29 +298,29 @@ Module CodeGenerator
         Else
             c = New CMPImmediateInstruction(t(1).r, t(3).i)
         End If
-        Dim destination As String = $"ENDWHILE{WHILECount}"
+        c.AddLabel(start)
         Select Case t(2).sym
             Case "<"
-                b = New BGTInstruction(destination)
-                beq = New BEQInstruction(destination)
+                b = New BGTInstruction(finish)
+                beq = New BEQInstruction(finish)
             Case "<="
-                b = New BGTInstruction(destination)
+                b = New BGTInstruction(finish)
             Case ">"
-                b = New BLTInstruction(destination)
-                beq = New BEQInstruction(destination)
+                b = New BLTInstruction(finish)
+                beq = New BEQInstruction(finish)
             Case ">="
-                b = New BLTInstruction(destination)
+                b = New BLTInstruction(finish)
             Case "="
-                b = New BNEInstruction(destination)
+                b = New BNEInstruction(finish)
             Case "<>"
-                b = New BEQInstruction(destination)
+                b = New BEQInstruction(finish)
             Case Else
                 Debug.Fail($"Invalid operator {t(2).sym} in WHILE statement")
                 b = Nothing
         End Select
-        Dim result = New List(Of MemoryLocation)() From {New Label($"WHILE{WHILECount}"), c, b}
+        Dim result = New List(Of MemoryLocation)() From {New Label(start), c, b}
         If beq IsNot Nothing Then
-            result.Add(New BEQInstruction(destination))
+            result.Add(New BEQInstruction(finish))
         End If
         Return result
     End Function
