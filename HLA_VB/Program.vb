@@ -121,7 +121,7 @@ Namespace HLA_VB
                     End If
                 Loop
 
-                If s.Any() Then ' Line is not empty or contains more than labels
+                If s.Count > 1 Then ' Line is not empty or contains more than labels (remember there is always an EndOfText token)
                     Dim matches = Parser.patterns.Where(Function(p) s.Matches(p.pattern))
                     If matches.Any() Then
                         Debug.Assert(matches.Count = 1, $"More than one parsing found for {line}")

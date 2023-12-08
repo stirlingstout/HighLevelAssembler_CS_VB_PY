@@ -140,6 +140,9 @@ Namespace HLA_VB
                 Do Until ch = EOT OrElse Not Char.IsWhiteSpace(ch)
                     NextCharacter()
                 Loop
+                If ch = "'" Then    ' Used for comments in the VB.NET version
+                    ch = EOT
+                End If
                 If ch = EOT Then
                     t = New Token()
                 ElseIf Char.IsDigit(ch) Then
