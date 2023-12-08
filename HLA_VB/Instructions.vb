@@ -1,5 +1,6 @@
 ﻿Imports System.ComponentModel.Design
 Imports System.Data
+Imports System.Net.Sockets
 
 Namespace HLA_VB
 
@@ -9,9 +10,9 @@ Namespace HLA_VB
 
             Private ReadOnly Word(HIGHEST_MEMORY_ADDRESS) As MemoryLocation
 
-            Public Iterator Function Words() As IEnumerable(Of MemoryLocation)
+            Public Iterator Function Words() As IEnumerable(Of (Address As Integer, w As MemoryLocation))
                 For i = 0 To HIGHEST_MEMORY_ADDRESS
-                    Yield Word(i)
+                    Yield (i, Word(i))
                 Next
             End Function
 
@@ -146,7 +147,7 @@ Namespace HLA_VB
         Public Class MemoryLocation
             Public Const MEMORY_LABEL_WIDTH = 10
 
-            Private ReadOnly labels As List(Of String) ' But contents can be altered
+            Public ReadOnly labels As List(Of String) ' But contents can be altered
 
             Sub New()
                 labels = New List(Of String)
