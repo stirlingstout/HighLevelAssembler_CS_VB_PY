@@ -63,7 +63,7 @@ Module CodeGenerator
                     i = New LSRRegisterInstruction(t(0).r, t(2).r, t(4).r)
                 End If
             Case Else
-                Debug.Fail($"Invalid operator match for {t(3).sym}")
+                Throw New Exception($"Invalid operator match for {t(3).sym}")
                 i = Nothing
         End Select
         Return New List(Of MemoryLocation)() From {i}
@@ -93,7 +93,7 @@ Module CodeGenerator
                     i = New EORRegisterInstruction(t(0).r, t(2).r, t(4).r)
                 End If
             Case Else
-                Debug.Fail($"Invalid operator match for {t(3).sym}")
+                Throw New Exception($"Invalid operator match for {t(3).sym}")
                 i = Nothing
         End Select
         Return New List(Of MemoryLocation)() From {i}
