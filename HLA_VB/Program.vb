@@ -224,6 +224,7 @@ Namespace HLA_VB
                 Select Case GetMenuOption()
                     Case "L"
                         program = LoadHLAFile(program)
+                        m.Clear()
                     Case "D"
                         DisplayHLA(program)
                         DisplayAssembly(m)

@@ -28,7 +28,7 @@ Namespace HLA_VB
 
             Sub Clear()
                 For i = 0 To HIGHEST_MEMORY_ADDRESS
-                    Word(i).Clear()
+                    Word(i) = New MemoryLocation()
                 Next
             End Sub
 
