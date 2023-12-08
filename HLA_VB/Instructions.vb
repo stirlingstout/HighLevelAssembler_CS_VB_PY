@@ -6,29 +6,14 @@ Namespace HLA_VB
     Public Module Instructions
 
         Public Class Memory
-            Implements IEnumerable, IEnumerator
 
-            Private ReadOnly words(HIGHEST_MEMORY_ADDRESS) As MemoryLocation
+            Private ReadOnly Word(HIGHEST_MEMORY_ADDRESS) As MemoryLocation
 
-            Private currentLocation As Integer = -1
-            Public Function GetEnumerator() As IEnumerator Implements IEnumerable.GetEnumerator
-                Return CType(Me, IEnumerator)
+            Public Iterator Function Words() As IEnumerable(Of MemoryLocation)
+                For i = 0 To HIGHEST_MEMORY_ADDRESS
+                    Yield Word(i)
+                Next
             End Function
-
-            Public Function MoveNext() As Boolean Implements IEnumerator.MoveNext
-                currentLocation += 1
-                Return currentLocation <= HIGHEST_MEMORY_ADDRESS
-            End Function
-
-            Public Sub Reset() Implements IEnumerator.Reset
-                currentLocation = -1
-            End Sub
-
-            Public ReadOnly Property Current As Object Implements IEnumerator.Current
-                Get ' TODO: look at https://learn.microsoft.com/en-us/troubleshoot/developer/visualstudio/csharp/language-compilers/make-class-foreach-statement
-                    Return words(currentLocation)
-                End Get
-            End Property
 
             Shared Function ValidAddress(a As Integer) As Boolean
                 Return a >= 0 And a <= HIGHEST_MEMORY_ADDRESS
@@ -36,28 +21,27 @@ Namespace HLA_VB
 
             Sub New()
                 For i = 0 To HIGHEST_MEMORY_ADDRESS
-                    words(i) = New MemoryLocation()
+                    Word(i) = New MemoryLocation()
                 Next
-                currentLocation = -1
             End Sub
 
             Sub Clear()
                 For i = 0 To HIGHEST_MEMORY_ADDRESS
-                    words(i).Clear()
+                    Word(i).Clear()
                 Next
             End Sub
 
             Default Property At(address As Integer) As MemoryLocation
                 Get
                     If ValidAddress(address) Then
-                        Return words(address)
+                        Return Word(address)
                     Else
                         Throw New IndexOutOfRangeException($"Invalid memory address: {address}")
                     End If
                 End Get
                 Set(value As MemoryLocation)
                     If ValidAddress(address) Then
-                        words(address) = value
+                        Word(address) = value
                     Else
                         Throw New IndexOutOfRangeException($"Invalid memory address: {address}")
                     End If
@@ -340,6 +324,12 @@ Namespace HLA_VB
                 End Get
             End Property
 
+            Overridable ReadOnly Property Opcode As String
+                Get
+                    Return ""
+                End Get
+            End Property
+
         End Class
 
 #Region "LDR and STR"
@@ -379,6 +369,7 @@ Namespace HLA_VB
                 location = CType(obj, MemoryReferenceInstruction).location AndAlso
                 locationLabel = CType(obj, MemoryReferenceInstruction).locationLabel ' TODO: any way these can be different?
             End Function
+
         End Class
 
         Class LoadInstructionDirect
@@ -409,7 +400,7 @@ Namespace HLA_VB
             End Sub
 
             Public Overrides Function ToString() As String
-                Return $"LDR R{Rd}, {location} {locationLabel}"
+                Return $"{MyBase.ToString()}LDR  R{Rd}, {location} {locationLabel}"
             End Function
 
             Public Overrides Function Equals(obj As Object) As Boolean
@@ -448,10 +439,15 @@ Namespace HLA_VB
                 Return MyBase.Equals(obj) AndAlso TypeName(obj) = TypeName(Me)
             End Function
             ' TODO see if this can be moved up the hierarchy into instruction. Is MyBase dynamic? MyClass/MyBase?
+
+            Public Overrides Function ToString() As String
+                Return $"{MyBase.ToString()}STR  R{Rd}, {location} {locationLabel}"
+            End Function
         End Class
 #End Region
 
 #Region "Arithmetic logic instructions"
+        ' TODO: Investigate whether by creating an immediate and register superclass of instruction types there don't need to be as many ToString implementations
         MustInherit Class ArithmeticLogicInstruction
             Inherits Instruction
 
@@ -505,6 +501,11 @@ Namespace HLA_VB
                 Return MyBase.Equals(obj) AndAlso
                     Rm = CType(obj, ArithmeticLogicInstructionRegister).Rm
             End Function
+
+            Public Overrides Function ToString() As String
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} R{Rd}, R{Rn}, R{Rm}"
+            End Function
+
         End Class
 
         MustInherit Class ArithmeticLogicInstructionImmediate
@@ -521,6 +522,11 @@ Namespace HLA_VB
                 Return MyBase.Equals(obj) AndAlso
                     value = CType(obj, ArithmeticLogicInstructionImmediate).value
             End Function
+
+            Public Overrides Function ToString() As String
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} R{Rd}, R{Rn}, #{value}"
+            End Function
+
         End Class
 
         Class ADDRegisterInstruction
@@ -533,6 +539,12 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers)
                 r(Rd) = r(Rn) + r(Rm)
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "ADD"
+                End Get
+            End Property
         End Class
 
         Class ADDImmediateInstruction
@@ -546,6 +558,11 @@ Namespace HLA_VB
                 r(Rd) = r(Rn) + value
             End Sub
 
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "ADD"
+                End Get
+            End Property
         End Class
 
         Class SUBRegisterInstruction
@@ -558,6 +575,12 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers)
                 r(Rd) = r(Rn) - r(Rm)
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "SUB"
+                End Get
+            End Property
         End Class
 
         Class SUBImmediateInstruction
@@ -571,6 +594,11 @@ Namespace HLA_VB
                 r(Rd) = r(Rn) - value
             End Sub
 
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "SUB"
+                End Get
+            End Property
         End Class
 
         Class ANDRegisterInstruction
@@ -583,6 +611,12 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers)
                 r(Rd) = r(Rn) And r(Rm)
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "AND"
+                End Get
+            End Property
         End Class
 
         Class ANDImmediateInstruction
@@ -596,6 +630,11 @@ Namespace HLA_VB
                 r(Rd) = r(Rn) And value
             End Sub
 
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "AND"
+                End Get
+            End Property
         End Class
 
         Class ORRRegisterInstruction
@@ -608,6 +647,12 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers)
                 r(Rd) = r(Rn) Or r(Rm)
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "ORR"
+                End Get
+            End Property
         End Class
 
         Class ORRImmediateInstruction
@@ -621,6 +666,12 @@ Namespace HLA_VB
                 r(Rd) = r(Rn) Or value
             End Sub
 
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "ORR"
+                End Get
+            End Property
+
         End Class
 
         Class EORRegisterInstruction
@@ -633,6 +684,12 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers)
                 r(Rd) = r(Rn) Xor r(Rm)
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "EOR"
+                End Get
+            End Property
         End Class
 
         Class EORImmediateInstruction
@@ -646,6 +703,11 @@ Namespace HLA_VB
                 r(Rd) = r(Rn) Xor value
             End Sub
 
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "EOR"
+                End Get
+            End Property
         End Class
 
         Class LSLRegisterInstruction
@@ -658,6 +720,12 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers)
                 r(Rd) = r(Rn) << (r(Rm) And (REGISTER_SIZE - 1))
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "LSL"
+                End Get
+            End Property
         End Class
 
         Class LSLImmediateInstruction
@@ -671,6 +739,11 @@ Namespace HLA_VB
                 r(Rd) = r(Rn) << (value And (REGISTER_SIZE - 1))
             End Sub
 
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "LSL"
+                End Get
+            End Property
         End Class
 
         Class LSRRegisterInstruction
@@ -683,6 +756,12 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers)
                 r(Rd) = r(Rn) >> r(Rm)
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "LSR"
+                End Get
+            End Property
         End Class
 
         Class LSRImmediateInstruction
@@ -695,6 +774,12 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers)
                 r(Rd) = r(Rn) >> value
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "LSR"
+                End Get
+            End Property
         End Class
 
 #End Region
@@ -707,6 +792,7 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers, m As Memory)
                 Execute(r)
             End Sub
+
         End Class
 
         Class HALTInstruction
@@ -715,6 +801,16 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers)
                 r.Halted = True
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "HALT"
+                End Get
+            End Property
+
+            Public Overrides Function ToString() As String
+                Return $"{MyBase.ToString()}{Me.Opcode,-4}"
+            End Function
         End Class
 
         Class MOVRegisterInstruction
@@ -739,6 +835,16 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers)
                 r(Rd) = r(Rm)
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "MOV"
+                End Get
+            End Property
+
+            Public Overrides Function ToString() As String
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} R{Rd}, R{Rm}"
+            End Function
         End Class
 
         Class MOVImmediateInstruction
@@ -759,6 +865,16 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers)
                 r(Rd) = value
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "MOV"
+                End Get
+            End Property
+
+            Public Overrides Function ToString() As String
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} R{Rd}, #{value}"
+            End Function
         End Class
 
         Class MVNRegisterInstruction
@@ -783,6 +899,17 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers)
                 r(Rd) = Not r(Rm)
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "MVN"
+                End Get
+            End Property
+
+            Public Overrides Function ToString() As String
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} R{Rd}, R{Rm}"
+            End Function
+
         End Class
 
         Class MVNImmediateInstruction
@@ -803,6 +930,16 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers)
                 r(Rd) = Not value
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "MVN"
+                End Get
+            End Property
+
+            Public Overrides Function ToString() As String
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} R{Rd}, #{value}"
+            End Function
         End Class
 
         Class CMPRegisterInstruction
@@ -827,6 +964,16 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers)
                 r.SetFlags(r(Rd) - r(Rm))
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "CMP"
+                End Get
+            End Property
+
+            Public Overrides Function ToString() As String
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} R{Rd}, R{Rm}"
+            End Function
         End Class
 
         Class CMPImmediateInstruction
@@ -847,6 +994,16 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers)
                 r.SetFlags(r(Rd) - value)
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "CMP"
+                End Get
+            End Property
+
+            Public Overrides Function ToString() As String
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} R{Rd}, #{value}"
+            End Function
         End Class
 #End Region
 
@@ -884,6 +1041,10 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers, m As Memory)
                 Execute(r)
             End Sub
+
+            Public Overrides Function ToString() As String
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} {destination} {destinationLabel}"
+            End Function
         End Class
 
         Class BInstruction
@@ -900,6 +1061,12 @@ Namespace HLA_VB
             Public Overrides Sub Execute(r As Registers)
                 r.PC = destination ' Valid address throws an exception if this is invalid, i.e., -1
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "B"
+                End Get
+            End Property
         End Class
 
         Class BEQInstruction
@@ -918,6 +1085,12 @@ Namespace HLA_VB
                     r.PC = destination ' Valid address throws an exception if this is invalid, i.e., -1
                 End If
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "BEQ"
+                End Get
+            End Property
         End Class
 
         Class BNEInstruction
@@ -936,6 +1109,12 @@ Namespace HLA_VB
                     r.PC = destination ' Valid address throws an exception if this is invalid, i.e., -1
                 End If
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "BNE"
+                End Get
+            End Property
         End Class
 
         Class BGTInstruction
@@ -954,6 +1133,12 @@ Namespace HLA_VB
                     r.PC = destination ' Valid address throws an exception if this is invalid, i.e., -1
                 End If
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "BGT"
+                End Get
+            End Property
         End Class
 
         Class BLTInstruction
@@ -972,6 +1157,12 @@ Namespace HLA_VB
                     r.PC = destination ' Valid address throws an exception if this is invalid, i.e., -1
                 End If
             End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "BLT"
+                End Get
+            End Property
         End Class
 #End Region
     End Module

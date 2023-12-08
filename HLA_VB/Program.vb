@@ -147,7 +147,7 @@ Namespace HLA_VB
                 End If
             Next
 
-            For Each location In m
+            For Each location In m.Words()
                 If TypeOf location Is BranchInstruction Then
                     ' TODO: see if you can get rid of CType
                     With CType(location, BranchInstruction)
@@ -179,7 +179,7 @@ Namespace HLA_VB
 
         Sub DisplayAssembly(m As Memory)
             Debug.Assert(m IsNot Nothing)
-            For Each word As MemoryLocation In m
+            For Each word In m.Words()
                 If word.HasContents Then
                     Console.WriteLine($"{word}")
                 End If
