@@ -11,6 +11,6 @@ MEMORY[C] = R3
 END
 
 
-A: DATA
-B: DATA
-C: DATA
+A: DATA 0
+B: DATA 0
+C: DATA 0

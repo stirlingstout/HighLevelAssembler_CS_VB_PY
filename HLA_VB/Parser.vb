@@ -23,7 +23,8 @@ Public Class Parser
 ("UNTIL R1 ?o ?2".ToTokens(), AddressOf UNTILStatement),
 ("WHILE R1 ?o ?2".ToTokens(), AddressOf WHILEStatement),
 ("END WHILE".ToTokens(), AddressOf ENDWHILE),
-("DATA 100".ToTokens(), AddressOf DATAStatement)
+("DATA 100".ToTokens(), AddressOf DATAStatement),
+("DATA".ToTokens(), AddressOf DATAStatement)
 }
     ' TODO: consider if we want to allow branch instructions to address without labels
     ' TODO: the LDR and STR could be condensed if we have a wildcard that can match an integer or an identifier
