@@ -118,6 +118,7 @@ Module CodeGenerator
             Return New List(Of MemoryLocation)() From {New MVNImmediateInstruction(t(0).r, t(3).i)}
         End If
     End Function
+
     Function SimpleIFStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
         ' IF Rn ?o  ?2 GOTO Start (may need another wildcard if we allow labels and integers, i.e., branches to direct addresses)
         ' 0  1  2   3  4    5
@@ -327,7 +328,7 @@ Module CodeGenerator
                 Debug.Fail($"Invalid operator {t(2).sym} in WHILE statement")
                 b = Nothing
         End Select
-        Dim result = New List(Of MemoryLocation)() From {New Label(start), c, b}
+        Dim result = New List(Of MemoryLocation)() From {c, b}
         If beq IsNot Nothing Then
             result.Add(New BEQInstruction(finish))
         End If
