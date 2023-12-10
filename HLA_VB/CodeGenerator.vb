@@ -122,25 +122,7 @@ Module CodeGenerator
     Function SimpleIFStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
         ' IF Rn ?o  ?2 GOTO Start (may need another wildcard if we allow labels and integers, i.e., branches to direct addresses)
         ' 0  1  2   3  4    5
-        Dim c As Instruction, b As Instruction
-        If t(3).type = TokenType.Register Then
-            c = New CMPRegisterInstruction(t(1).r, t(3).r)
-        Else
-            c = New CMPImmediateInstruction(t(1).r, t(3).i)
-        End If
-        Select Case t(2).sym
-            Case "<"
-                b = New BLTInstruction(t(5).id)
-            Case ">"
-                b = New BGTInstruction(t(5).id)
-            Case "="
-                b = New BEQInstruction(t(5).id)
-            Case "<>"
-                b = New BNEInstruction(t(5).id)
-            Case Else
-                Throw New Exception($"Invalid operator {t(2).sym} in IF statement")
-        End Select
-        Return New List(Of MemoryLocation)() From {c, b}
+        Return ComparisonBranchIfTrue(t(1).r, t(2).sym, t(3), "", t(5).id)
     End Function
 
     Function BAlwaysLabel(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
@@ -192,41 +174,8 @@ Module CodeGenerator
         ' 0     1  2  3
         REPEATCount -= 1
 
-        Dim c, b, beq As Instruction
-        beq = Nothing
-        ' beq used to handle UNTIL < using a BGT and a BEQ.
-        ' TODO Optimise the immediate case by increasing/decreasing the operand
-
-        If t(3).type = TokenType.Register Then
-            c = New CMPRegisterInstruction(t(1).r, t(3).r)
-        Else
-            c = New CMPImmediateInstruction(t(1).r, t(3).i)
-        End If
         Dim destination As String = $"REPEAT{REPEATCount + 1}"
-        Select Case t(2).sym
-            Case "<"
-                b = New BGTInstruction(destination)
-                beq = New BEQInstruction(destination)
-            Case "<="
-                b = New BGTInstruction(destination)
-            Case ">"
-                b = New BLTInstruction(destination)
-                beq = New BEQInstruction(destination)
-            Case ">="
-                b = New BLTInstruction(destination)
-            Case "="
-                b = New BNEInstruction(destination)
-            Case "<>"
-                b = New BEQInstruction(destination)
-            Case Else
-                Debug.Fail($"Invalid operator {t(2).sym} in UNTIL statement")
-                b = Nothing
-        End Select
-        Dim result = New List(Of MemoryLocation)() From {c, b}
-        If beq IsNot Nothing Then
-            result.Add(New BEQInstruction(destination))
-        End If
-        Return result
+        Return ComparisonBranchIfFalse(t(1).r, t(2).sym, t(3), "", destination)
     End Function
 
     Function FORTOStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
@@ -234,21 +183,14 @@ Module CodeGenerator
         '  0  1  2 3  4  5
         FORCount += 1
         FORStatements.Push((t(1).r, True))
-        Dim m, c, b As Instruction
+        Dim result As New List(Of MemoryLocation)
         If t(3).type = TokenType.Register Then
-            m = New MOVRegisterInstruction(t(1).r, t(3).r)
+            result.Add(New MOVRegisterInstruction(t(1).r, t(3).r))
         Else
-            m = New MOVImmediateInstruction(t(1).r, t(3).i)
+            result.Add(New MOVImmediateInstruction(t(1).r, t(3).i))
         End If
-        If t(5).type = TokenType.Register Then
-            c = New CMPRegisterInstruction(t(1).r, t(5).r)
-        Else
-            c = New CMPImmediateInstruction(t(1).r, t(5).i)
-        End If
-        c.AddLabel($"FOR{FORCount}")
-        Return New List(Of MemoryLocation)() From {m,
-                                                   c,
-                                                   New BGTInstruction($"ENDFOR{FORCount}")}
+        result.AddRange(ComparisonBranchIfFalse(t(1).r, "<=", t(5), $"FOR{FORCount}", $"ENDFOR{FORCount}"))
+        Return result
     End Function
 
     Function FORDOWNTOStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
@@ -256,21 +198,14 @@ Module CodeGenerator
         '  0  1  2 3  4      5
         FORCount += 1
         FORStatements.Push((t(1).r, False))
-        Dim m, c, b As Instruction
+        Dim result As New List(Of MemoryLocation)
         If t(3).type = TokenType.Register Then
-            m = New MOVRegisterInstruction(t(1).r, t(3).r)
+            result.Add(New MOVRegisterInstruction(t(1).r, t(3).r))
         Else
-            m = New MOVImmediateInstruction(t(1).r, t(3).i)
+            result.Add(New MOVImmediateInstruction(t(1).r, t(3).i))
         End If
-        If t(5).type = TokenType.Register Then
-            c = New CMPRegisterInstruction(t(1).r, t(5).r)
-        Else
-            c = New CMPImmediateInstruction(t(1).r, t(5).i)
-        End If
-        c.AddLabel($"FOR{FORCount}")
-        Return New List(Of MemoryLocation)() From {m,
-                                                   c,
-                                                   New BLTInstruction($"ENDFOR{FORCount}")}
+        result.AddRange(ComparisonBranchIfFalse(t(1).r, ">=", t(5), $"FOR{FORCount}", $"ENDFOR{FORCount}"))
+        Return result
     End Function
 
     Function ENDFOR(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
@@ -301,42 +236,7 @@ Module CodeGenerator
         WHILECount += 1
         Dim start = $"WHILE{WHILECount}", finish = $"ENDWHILE{WHILECount}"
 
-        Dim c, b, beq As Instruction
-        ' beq used to handle WHILE < using a BGT and a BEQ.
-        beq = Nothing
-        ' TODO Optimise the immediate case by increasing/decreasing the operand
-
-        If t(3).type = TokenType.Register Then
-            c = New CMPRegisterInstruction(t(1).r, t(3).r)
-        Else
-            c = New CMPImmediateInstruction(t(1).r, t(3).i)
-        End If
-        c.AddLabel(start)
-        Select Case t(2).sym
-            Case "<"
-                b = New BGTInstruction(finish)
-                beq = New BEQInstruction(finish)
-            Case "<="
-                b = New BGTInstruction(finish)
-            Case ">"
-                b = New BLTInstruction(finish)
-                beq = New BEQInstruction(finish)
-            Case ">="
-                b = New BLTInstruction(finish)
-            Case "="
-                b = New BNEInstruction(finish)
-            Case "<>"
-                b = New BEQInstruction(finish)
-            Case Else
-                Debug.Fail($"Invalid operator {t(2).sym} in WHILE statement")
-                ' TODO: remove most of the DebUgs
-                b = Nothing
-        End Select
-        Dim result = New List(Of MemoryLocation)() From {c, b}
-        If beq IsNot Nothing Then
-            result.Add(New BEQInstruction(finish))
-        End If
-        Return result
+        Return ComparisonBranchIfFalse(t(1).r, t(2).sym, t(3), start, finish)
     End Function
 
 #Disable Warning IDE0060 ' Remove unused parameter
@@ -356,46 +256,32 @@ Module CodeGenerator
         IFStatements.Push(0) ' Top of stack holds the integer to be used in the next label after ELSE IF, ELSE, or END IF
         Dim nextLabel = $"EIF{IFCount}_{IFStatements.Peek()}"
 
-        ' TODO: refactor this so we can generate the common pattern of CMP .../ B.. ... (and its opposite)
-        Dim c, b, beq As Instruction
-        ' beq used to handle UNTIL < using a BGT and a BEQ.
-        beq = Nothing
-
-        If t(3).type = TokenType.Register Then
-            c = New CMPRegisterInstruction(t(1).r, t(3).r)
-        Else
-            c = New CMPImmediateInstruction(t(1).r, t(3).i)
-        End If
-        Select Case t(2).sym
-            Case "<"
-                b = New BGTInstruction(nextLabel)
-                beq = New BEQInstruction(nextLabel)
-            Case "<="
-                b = New BGTInstruction(nextLabel)
-            Case ">"
-                b = New BLTInstruction(nextLabel)
-                beq = New BEQInstruction(nextLabel)
-            Case ">="
-                b = New BLTInstruction(nextLabel)
-            Case "="
-                b = New BNEInstruction(nextLabel)
-            Case "<>"
-                b = New BEQInstruction(nextLabel)
-            Case Else
-                Throw New Exception($"Invalid operator {t(2).sym} in IF statement")
-                b = Nothing
-        End Select
-        Dim result = New List(Of MemoryLocation)() From {c, b}
-        If beq IsNot Nothing Then
-            result.Add(New BEQInstruction(nextLabel))
-        End If
-        Return result
+        Return ComparisonBranchIfFalse(t(1).r, t(2).sym, t(3), "", nextLabel)
     End Function
 
-    Function ComparisonInstructions(r As Integer, op As String, operand2 As Token, compLabel As String, nextLabel As String) As List(Of MemoryLocation)
-        ' TODO: refactor this so we can generate the common pattern of CMP .../ B.. ... (and its opposite)
+    Function OppositeComparison(op As String) As String
+        Select Case op
+            Case "<"
+                Return ">="
+            Case "<="
+                Return ">"
+            Case ">"
+                Return "<="
+            Case ">="
+                Return "<"
+            Case "="
+                Return "<>"
+            Case "<>"
+                Return "="
+            Case Else
+                Throw New Exception($"Cannot generate the opposite comparison to {op}")
+                Return op
+        End Select
+    End Function
+
+    Function ComparisonBranchIfFalse(r As Integer, op As String, operand2 As Token, CMPLabel As String, destination As String) As List(Of MemoryLocation)
         Dim c, b, beq As Instruction
-        ' beq used to handle UNTIL < using a BGT and a BEQ.
+        ' beq used to handle UNTIL < (and <=, >=) using a BGT and a BEQ etc
         beq = Nothing
 
         If operand2.type = TokenType.Register Then
@@ -403,31 +289,37 @@ Module CodeGenerator
         Else
             c = New CMPImmediateInstruction(r, operand2.i)
         End If
-        c.AddLabel(compLabel)
+        If CMPLabel.Any() Then
+            c.AddLabel(CMPLabel)
+        End If
         Select Case op
             Case "<"
-                b = New BGTInstruction(nextLabel)
-                beq = New BEQInstruction(nextLabel)
+                b = New BGTInstruction(destination)
+                beq = New BEQInstruction(destination)
             Case "<="
-                b = New BGTInstruction(nextLabel)
+                b = New BGTInstruction(destination)
             Case ">"
-                b = New BLTInstruction(nextLabel)
-                beq = New BEQInstruction(nextLabel)
+                b = New BLTInstruction(destination)
+                beq = New BEQInstruction(destination)
             Case ">="
-                b = New BLTInstruction(nextLabel)
+                b = New BLTInstruction(destination)
             Case "="
-                b = New BNEInstruction(nextLabel)
+                b = New BNEInstruction(destination)
             Case "<>"
-                b = New BEQInstruction(nextLabel)
+                b = New BEQInstruction(destination)
             Case Else
                 Throw New Exception($"Invalid operator {op} in IF statement")
                 b = Nothing
         End Select
         Dim result = New List(Of MemoryLocation)() From {c, b}
         If beq IsNot Nothing Then
-            result.Add(New BEQInstruction(nextLabel))
+            result.Add(New BEQInstruction(destination))
         End If
         Return result
+    End Function
+
+    Function ComparisonBranchIfTrue(r As Integer, op As String, operand2 As Token, CMPLabel As String, destination As String) As List(Of MemoryLocation)
+        Return ComparisonBranchIfFalse(r, OppositeComparison(op), operand2, "", destination)
     End Function
 
     Function ELSEIFStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
@@ -438,7 +330,7 @@ Module CodeGenerator
             IFStatements.Push(IFBlockNumber + 1)
             Dim b = New BInstruction($"EIF{IFCount}") ' branch after the THEN block has executed
             Dim l = $"EIF{IFCount}_{IFBlockNumber}" ' label for ELSE IF comparisons, added to comparison instruction
-            Return ComparisonInstructions(t(2).r, t(3).sym, t(4), l, $"EIF{IFCount}_{IFStatements.Peek()}")
+            Return ComparisonBranchIfFalse(t(2).r, t(3).sym, t(4), l, $"EIF{IFCount}_{IFStatements.Peek()}")
         Else
             Throw New Exception($"ELSE without a corrsponding IF")
         End If

@@ -1,6 +1,7 @@
 ﻿Imports Microsoft.VisualStudio.TestTools.UnitTesting
 Imports HLA_VB.HLA_VB
 Imports Microsoft.VisualStudio.TestPlatform.ObjectModel.Client.Interfaces
+Imports System.IO
 
 Namespace HLA_VB_Tests
     <TestClass>
@@ -366,6 +367,115 @@ Namespace HLA_VB_Tests
             Assert.AreEqual(0, errors.Count)
             ExecuteProgram(m, r)
             Assert.AreEqual(45, r(2))
+        End Sub
+    End Class
+
+    <TestClass>
+    Public Class UnitTest_CodeGeneration_SamplePrograms
+        <TestMethod>
+        Sub TestCodeGeneration16()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program = (New StreamReader("program1.hla")).ReadToEnd().Split(Environment.NewLine).ToList()
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            Assert.AreEqual(0, errors.Count)
+            ' Program cannot be executed as it has endless loops
+        End Sub
+
+        <TestMethod>
+        Sub TestCodeGeneration17()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program = (New StreamReader("program2.hla")).ReadToEnd().Split(Environment.NewLine).ToList()
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            ExecuteProgram(m, r)
+            Assert.AreEqual(0, errors.Count)
+            Assert.AreEqual(12, r(1))
+            Assert.AreEqual(24, r(2))
+            Assert.AreEqual(19, r(3))
+            Assert.AreEqual(8, r.PC)
+        End Sub
+
+        <TestMethod>
+        Sub TestCodeGeneration18()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program = (New StreamReader("program3.hla")).ReadToEnd().Split(Environment.NewLine).ToList()
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            ExecuteProgram(m, r)
+            Assert.AreEqual(0, errors.Count)
+            Assert.AreEqual(10, r(1))
+            Assert.AreEqual(20, r(2))
+            Assert.AreEqual(30, r(3))
+            Assert.AreEqual(11, r.PC)
+
+            Assert.IsTrue(TypeOf m(11) Is Data)
+            Assert.AreEqual(10, m(11).GetValue())
+            Assert.IsTrue(TypeOf m(12) Is Data)
+            Assert.AreEqual(20, m(12).GetValue())
+            Assert.IsTrue(TypeOf m(13) Is Data)
+            Assert.AreEqual(30, m(13).GetValue())
+
+        End Sub
+
+        <TestMethod>
+        Sub TestCodeGeneration19()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program = (New StreamReader("program4.hla")).ReadToEnd().Split(Environment.NewLine).ToList()
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            Assert.ThrowsException(Of System.Data.DataException)(Sub() ExecuteProgram(m, r))
+        End Sub
+
+        <TestMethod>
+        Sub TestCodeGeneration20()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program = (New StreamReader("BinaryToHexASCII.hla")).ReadToEnd().Split(Environment.NewLine).ToList()
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            ExecuteProgram(m, r)
+            Assert.AreEqual(0, errors.Count)
+
+            Assert.AreEqual(63, r(0))
+            Assert.AreEqual(51, r(3))
+            Assert.AreEqual(70, r(2))
+
+            Assert.IsTrue(TypeOf m(17) Is Data)
+            Assert.AreEqual(63, m(17).GetValue())
+            Assert.IsTrue(TypeOf m(18) Is Data)
+            Assert.AreEqual(51, m(18).GetValue())
+            Assert.IsTrue(TypeOf m(19) Is Data)
+            Assert.AreEqual(70, m(19).GetValue())
         End Sub
     End Class
 End Namespace

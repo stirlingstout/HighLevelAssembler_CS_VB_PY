@@ -1,6 +1,6 @@
-Start:  GOTO Start    ' This is a comment
-        MEMORY[100] = R1
-        R3 = MEMORY[100]
+Start:  GOTO Start1    ' This is a comment: originally START: GOTO start which can't be tested via execution
+Start1:        MEMORY[Hundred] = R1 ' Originally numbers
+        R3 = MEMORY[Hundred]
         R2 = R1 + R3
         R3 = R4 - R5
         R6 = R5 and R7
@@ -9,8 +9,8 @@ Start:  GOTO Start    ' This is a comment
         R10 = R10 << R1
         R12 = R10 >> R8
         R13 = not R1
-        MEMORY[200] = R1
-        MEMORY[200] = R4
+        MEMORY[twoHundred] = R1
+        MEMORY[twoHundred] = R4
         IF R1 < R2 GOTO Start
         IF R1 = R2 GOTO Start
         IF R1 <> R2 GOTO Start
@@ -27,5 +27,7 @@ Start:  GOTO Start    ' This is a comment
         R10 = R10 << 3
         R12 = R10 >> 5
         R13 = not 5
-        END
         HALT
+
+Hundred: data
+twoHundred: data

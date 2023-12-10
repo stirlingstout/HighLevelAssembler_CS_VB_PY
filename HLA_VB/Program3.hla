@@ -1,16 +1,16 @@
 R1 = 0
 again:
+R1 = R1 + 1          ' r1 goes 2, 4, 6,  8,  10 
 R1 = R1 + 1
-R1 = R1 + 1
-R2 = R1 + R1
+R2 = R1 + R1		 ' r2 goes 4, 8, 12, 16, 20 
 IF R1 < 10 GOTO again
 MEMORY[A] = R1
 MEMORY[B] = R2
-R3 = R1 + R2
+R3 = R1 + R2		 ' r3 goes 30
 MEMORY[C] = R3
-END
+HALT
 
 
-A: DATA 0
-B: DATA 0
-C: DATA 0
+A: DATA 0				' Location 11, value 10
+B: DATA 0				' Location 12, value 20
+C: DATA 0				' Location 13, value 30

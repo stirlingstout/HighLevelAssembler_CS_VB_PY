@@ -13,6 +13,7 @@ Public Class Parser
 ("MEMORY[First] = R0".ToTokens(), AddressOf STRDirectLabel),
 ("R0 = R1 ?o ?2".ToTokens(), AddressOf ArithmeticOperation),
 ("R0 = R1 ?i R2".ToTokens(), AddressOf LogicOperation),
+("R0 = R1 ?i 100".ToTokens(), AddressOf LogicOperation),
 ("R0 = ?2".ToTokens(), AddressOf MOVOperation),
 ("R0 = NOT ?2".ToTokens(), AddressOf MVNOperation),
 ("IF R0 ?o ?2 GOTO Start".ToTokens(), AddressOf SimpleIFStatement),
