@@ -1,4 +1,5 @@
-﻿Imports HLA_VB.HLA_VB
+﻿Imports System.ComponentModel.Design
+Imports HLA_VB.HLA_VB
 Imports HLA_VB.HLA_VB.Instructions
 Imports HLA_VB.HLA_VB.Scanner
 
@@ -25,7 +26,11 @@ Public Class Parser
 ("WHILE R1 ?o ?2".ToTokens(), AddressOf WHILEStatement),
 ("END WHILE".ToTokens(), AddressOf ENDWHILE),
 ("DATA 100".ToTokens(), AddressOf DATAStatement),
-("DATA".ToTokens(), AddressOf DATAStatement)
+("DATA".ToTokens(), AddressOf DATAStatement),
+("IF R1 ?o ?2 THEN".ToTokens(), AddressOf IFStatement),
+("ELSE IF R1 ?o ?2 THEN".ToTokens(), AddressOf ELSEIFStatement),
+("ELSE".ToTokens(), AddressOf ELSEStatement),
+("END IF".ToTokens(), AddressOf ENDIFStatement)
 }
     ' TODO: consider if we want to allow branch instructions to address without labels
     ' TODO: the LDR and STR could be condensed if we have a wildcard that can match an integer or an identifier

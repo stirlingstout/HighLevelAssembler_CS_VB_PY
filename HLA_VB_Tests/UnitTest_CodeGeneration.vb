@@ -4,7 +4,7 @@ Imports Microsoft.VisualStudio.TestPlatform.ObjectModel.Client.Interfaces
 
 Namespace HLA_VB_Tests
     <TestClass>
-    Public Class UnitTest_CodeGeneration
+    Public Class UnitTest_CodeGeneration_Arithmetic
         <TestMethod>
         Sub TestCodeGeneration0()
             Dim m As Memory
@@ -57,6 +57,10 @@ Namespace HLA_VB_Tests
             Assert.AreEqual(TypeName(New ADDRegisterInstruction(1, 2, 3)), TypeName(m(0)))
             Assert.AreEqual(errorLine, errors(0))
         End Sub
+    End Class
+
+    <TestClass>
+    Public Class UnitTest_CodeGeneration_Labels
 
         <TestMethod>
         Sub TestCodeGeneration3()
@@ -128,7 +132,10 @@ Namespace HLA_VB_Tests
             ExecuteProgram(m, r)
             Assert.AreEqual(-5, r(1))
         End Sub
+    End Class
 
+    <TestClass>
+    Public Class UnitTest_CodeGeneration_ControlStructures_FOR
         <TestMethod>
         Sub TestCodeGeneration7()
             Dim m As Memory
@@ -171,6 +178,10 @@ Namespace HLA_VB_Tests
             Assert.AreEqual(5050, r(1))
         End Sub
 
+    End Class
+
+    <TestClass>
+    Public Class UnitTest_CodeGeneration_ControlStructures_REPEAT
         <TestMethod>
         Sub TestCodeGeneration9()
             Dim m As Memory
@@ -221,29 +232,6 @@ Namespace HLA_VB_Tests
             Dim r As Registers
             Dim errors As List(Of String)
 
-            Dim program = New List(Of String)() From {"R1 = 0", "R9 = 0", "R0 =50",
-                                                      "WHile R9 <> R0",
-                                                            "R1 = R1 + R9",
-                                                            "R9 = R9 + 1",
-                                                      "end while",
-                                                      "HALT"}
-            With CompileHLA(program)
-                m = .assembly
-                r = .registers
-                errors = .errorList
-            End With
-            Assert.AreEqual(0, errors.Count)
-            ExecuteProgram(m, r)
-            Assert.AreEqual(1225, r(1)) ' 1225 since the 50 doesn't get added!
-        End Sub
-
-
-        <TestMethod>
-        Sub TestCodeGeneration12()
-            Dim m As Memory
-            Dim r As Registers
-            Dim errors As List(Of String)
-
             Dim program = New List(Of String)() From {"R1 = 0", "R9 = 50", "R0 =0",
                                                       "REPEAT",
                                                             "R1 = R1 + R9",
@@ -261,7 +249,7 @@ Namespace HLA_VB_Tests
         End Sub
 
         <TestMethod>
-        Sub TestCodeGeneration13()
+        Sub TestCodeGeneration12()
             Dim m As Memory
             Dim r As Registers
             Dim errors As List(Of String)
@@ -280,6 +268,104 @@ Namespace HLA_VB_Tests
             Assert.AreEqual(0, errors.Count)
             ExecuteProgram(m, r)
             Assert.AreEqual(1275, r(1))
+        End Sub
+    End Class
+
+    <TestClass>
+    Public Class UnitTest_CodeGeneration_ControlStructures_WHILE
+        <TestMethod>
+        Sub TestCodeGeneration13()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program = New List(Of String)() From {"R1 = 0", "R9 = 0", "R0 =50",
+                                                      "WHile R9 <> R0",
+                                                            "R1 = R1 + R9",
+                                                            "R9 = R9 + 1",
+                                                      "end while",
+                                                      "HALT"}
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            Assert.AreEqual(0, errors.Count)
+            ExecuteProgram(m, r)
+            Assert.AreEqual(1225, r(1)) ' 1225 since the 50 doesn't get added!
+        End Sub
+
+    End Class
+
+    <TestClass>
+    Public Class UnitTest_CodeGeneration_IF
+        <TestMethod>
+        Sub TestCodeGeneration14()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program = New List(Of String)() From {"R2 = 99",
+                                                      "IF R2 > 0 THEN",
+                                                         "R2 = R2 + R2",
+                                                      "END IF",
+                                                      "HALT"}
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            Assert.AreEqual(0, errors.Count)
+            ExecuteProgram(m, r)
+            Assert.AreEqual(198, r(2))
+        End Sub
+
+        <TestMethod>
+        Sub TestCodeGeneration15()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program = New List(Of String)() From {"R2 = 99",
+                                                      "IF R2 < 0 THEN",
+                                                         "R2 = R2 + R2",
+                                                      "ELSE",
+                                                         "R2 = R2 >> 1",
+                                                      "END IF",
+                                                      "HALT"}
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            Assert.AreEqual(0, errors.Count)
+            ExecuteProgram(m, r)
+            Assert.AreEqual(49, r(2))
+        End Sub
+
+        <TestMethod>
+        Sub TestCodeGeneration16()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program = New List(Of String)() From {"R2 = 0",
+                                                      "IF R2 < 0 THEN",
+                                                         "R2 = R2 + R2",
+                                                      "ELSE IF R2 = 0 THEN",
+                                                         "R2 = 45",
+                                                      "ELSE",
+                                                         "R2 = R2 >> 1",
+                                                      "END IF",
+                                                      "HALT"}
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            Assert.AreEqual(0, errors.Count)
+            ExecuteProgram(m, r)
+            Assert.AreEqual(45, r(2))
         End Sub
     End Class
 End Namespace

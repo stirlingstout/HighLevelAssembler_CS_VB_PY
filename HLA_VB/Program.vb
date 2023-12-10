@@ -106,7 +106,7 @@ Namespace HLA_VB
                            End Sub
 
             r.PC = 0
-            ResetStructureCounts()
+            ResetStructureTracking()
 
             Dim labels As New List(Of String) ' Needs to be outside loop since we delay emitting a label sometimes (see END FOR code generation)
             For Each line In program

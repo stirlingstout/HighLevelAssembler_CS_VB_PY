@@ -160,19 +160,22 @@ Module CodeGenerator
 #Region "Control structures"
 
     Private REPEATCount = -1
-    Private IFELSECount = -1
+    Private IFCount = -1
     Private FORCount = -1
     Private WHILECount = -1
-    Private ReadOnly FORLoops As New Stack(Of (Rd As Integer, Incrementing As Boolean))
+    Private ReadOnly FORStatements As New Stack(Of (Rd As Integer, Incrementing As Boolean))
     ' FOR loops are unusual in that we need to know about the register used and the 'direction' of the
     ' loop when we compile the END FOR
+    Private ReadOnly IFStatements As New Stack(Of Integer)
+    ' IF statements unusual in that we need to what label we need to generate after the next ELSE IF, ELSE, or END IF
 
-    Sub ResetStructureCounts()
+    Sub ResetStructureTracking()
         REPEATCount = -1
-        IFELSECount = -1
+        IFCount = -1
         FORCount = -1
         WHILECount = -1
-        FORLoops.Clear()
+        FORStatements.Clear()
+        IFStatements.Clear()
     End Sub
 
 #Disable Warning IDE0060 ' Remove unused parameter
@@ -230,7 +233,7 @@ Module CodeGenerator
         ' FOR R1 = ?2 TO ?2
         '  0  1  2 3  4  5
         FORCount += 1
-        FORLoops.Push((t(1).r, True))
+        FORStatements.Push((t(1).r, True))
         Dim m, c, b As Instruction
         If t(3).type = TokenType.Register Then
             m = New MOVRegisterInstruction(t(1).r, t(3).r)
@@ -252,7 +255,7 @@ Module CodeGenerator
         ' FOR R1 = ?2 DOWNTO ?2
         '  0  1  2 3  4      5
         FORCount += 1
-        FORLoops.Push((t(1).r, False))
+        FORStatements.Push((t(1).r, False))
         Dim m, c, b As Instruction
         If t(3).type = TokenType.Register Then
             m = New MOVRegisterInstruction(t(1).r, t(3).r)
@@ -276,7 +279,7 @@ Module CodeGenerator
         FORCount -= 1
         Dim ChangeIndex As ArithmeticLogicInstruction
         Dim f As (rd As Integer, Incrementing As Boolean)
-        If FORLoops.TryPop(f) Then
+        If FORStatements.TryPop(f) Then
             With f
                 If .Incrementing Then
                     ChangeIndex = New ADDImmediateInstruction(.rd, .rd, 1)
@@ -299,7 +302,7 @@ Module CodeGenerator
         Dim start = $"WHILE{WHILECount}", finish = $"ENDWHILE{WHILECount}"
 
         Dim c, b, beq As Instruction
-        ' beq used to handle UNTIL < using a BGT and a BEQ.
+        ' beq used to handle WHILE < using a BGT and a BEQ.
         beq = Nothing
         ' TODO Optimise the immediate case by increasing/decreasing the operand
 
@@ -326,6 +329,7 @@ Module CodeGenerator
                 b = New BEQInstruction(finish)
             Case Else
                 Debug.Fail($"Invalid operator {t(2).sym} in WHILE statement")
+                ' TODO: remove most of the DebUgs
                 b = Nothing
         End Select
         Dim result = New List(Of MemoryLocation)() From {c, b}
@@ -345,6 +349,130 @@ Module CodeGenerator
                                                    New Label($"ENDWHILE{WHILECount + 1}")}
     End Function
 
+    Function IFStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' IF R1 ?o ?2 THEN
+        ' 0  1  2  3  4
+        IFCount += 1
+        IFStatements.Push(0) ' Top of stack holds the integer to be used in the next label after ELSE IF, ELSE, or END IF
+        Dim nextLabel = $"EIF{IFCount}_{IFStatements.Peek()}"
+
+        ' TODO: refactor this so we can generate the common pattern of CMP .../ B.. ... (and its opposite)
+        Dim c, b, beq As Instruction
+        ' beq used to handle UNTIL < using a BGT and a BEQ.
+        beq = Nothing
+
+        If t(3).type = TokenType.Register Then
+            c = New CMPRegisterInstruction(t(1).r, t(3).r)
+        Else
+            c = New CMPImmediateInstruction(t(1).r, t(3).i)
+        End If
+        Select Case t(2).sym
+            Case "<"
+                b = New BGTInstruction(nextLabel)
+                beq = New BEQInstruction(nextLabel)
+            Case "<="
+                b = New BGTInstruction(nextLabel)
+            Case ">"
+                b = New BLTInstruction(nextLabel)
+                beq = New BEQInstruction(nextLabel)
+            Case ">="
+                b = New BLTInstruction(nextLabel)
+            Case "="
+                b = New BNEInstruction(nextLabel)
+            Case "<>"
+                b = New BEQInstruction(nextLabel)
+            Case Else
+                Throw New Exception($"Invalid operator {t(2).sym} in IF statement")
+                b = Nothing
+        End Select
+        Dim result = New List(Of MemoryLocation)() From {c, b}
+        If beq IsNot Nothing Then
+            result.Add(New BEQInstruction(nextLabel))
+        End If
+        Return result
+    End Function
+
+    Function ComparisonInstructions(r As Integer, op As String, operand2 As Token, compLabel As String, nextLabel As String) As List(Of MemoryLocation)
+        ' TODO: refactor this so we can generate the common pattern of CMP .../ B.. ... (and its opposite)
+        Dim c, b, beq As Instruction
+        ' beq used to handle UNTIL < using a BGT and a BEQ.
+        beq = Nothing
+
+        If operand2.type = TokenType.Register Then
+            c = New CMPRegisterInstruction(r, operand2.r)
+        Else
+            c = New CMPImmediateInstruction(r, operand2.i)
+        End If
+        c.AddLabel(compLabel)
+        Select Case op
+            Case "<"
+                b = New BGTInstruction(nextLabel)
+                beq = New BEQInstruction(nextLabel)
+            Case "<="
+                b = New BGTInstruction(nextLabel)
+            Case ">"
+                b = New BLTInstruction(nextLabel)
+                beq = New BEQInstruction(nextLabel)
+            Case ">="
+                b = New BLTInstruction(nextLabel)
+            Case "="
+                b = New BNEInstruction(nextLabel)
+            Case "<>"
+                b = New BEQInstruction(nextLabel)
+            Case Else
+                Throw New Exception($"Invalid operator {op} in IF statement")
+                b = Nothing
+        End Select
+        Dim result = New List(Of MemoryLocation)() From {c, b}
+        If beq IsNot Nothing Then
+            result.Add(New BEQInstruction(nextLabel))
+        End If
+        Return result
+    End Function
+
+    Function ELSEIFStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' ELSE IF R1 ?o ?2 THEN
+        ' 0    1  2  3  4  5
+        If IFStatements.Any() Then
+            Dim IFBlockNumber = IFStatements.Pop()
+            IFStatements.Push(IFBlockNumber + 1)
+            Dim b = New BInstruction($"EIF{IFCount}") ' branch after the THEN block has executed
+            Dim l = $"EIF{IFCount}_{IFBlockNumber}" ' label for ELSE IF comparisons, added to comparison instruction
+            Return ComparisonInstructions(t(2).r, t(3).sym, t(4), l, $"EIF{IFCount}_{IFStatements.Peek()}")
+        Else
+            Throw New Exception($"ELSE without a corrsponding IF")
+        End If
+    End Function
+
+#Disable Warning IDE0060 ' Remove unused parameter
+    Function ELSEStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+#Enable Warning IDE0060 ' Remove unused parameter
+        ' ELSE
+        ' 0
+        If IFStatements.Any() Then
+            Dim IFBlockNumber = IFStatements.Pop()
+            IFStatements.Push(IFBlockNumber + 1)
+            Return New List(Of MemoryLocation) From {New BInstruction($"EIF{IFCount}"), New Label($"EIF{IFCount}_{IFBlockNumber}")}
+        Else
+            Throw New Exception($"ELSE without a corresponding IF")
+        End If
+    End Function
+
+#Disable Warning IDE0060 ' Remove unused parameter
+    Function ENDIFStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+#Enable Warning IDE0060 ' Remove unused parameter
+        ' END IF
+        '  0  1
+        If IFStatements.Any() Then
+            Dim IFBlockNumber = IFStatements.Pop()
+            Return New List(Of MemoryLocation)() From {New Label($"EIF{IFCount}_{IFBlockNumber}"), New Label($"EIF{IFCount}")}
+        Else
+            Throw New Exception("END IF without a corresponding IF")
+        End If
+    End Function
+#End Region
+
+#Region "DATA and other pseudo-instructions"
     Function DATAStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
         ' DATA 100
         '   0   1
