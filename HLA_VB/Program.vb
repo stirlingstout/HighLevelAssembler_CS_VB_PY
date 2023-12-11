@@ -97,15 +97,16 @@ Namespace HLA_VB
             Dim m As New Memory()
             Dim r As New Registers()
             Dim errors As New List(Of String)
+            Dim depositLocation = 0
 
             Dim symbolTable As New Dictionary(Of String, Integer)
             Dim AddLabel = Sub(label As String)
-                               If Not symbolTable.TryAdd(label, r.PC) Then
+                               If Not symbolTable.TryAdd(label, depositLocation) Then
                                    errors.Add($"Duplicate label {label}")
                                End If
                            End Sub
 
-            r.PC = 0
+
             ResetStructureTracking()
 
             Dim labels As New List(Of String) ' Needs to be outside loop since we delay emitting a label sometimes (see END FOR code generation)
@@ -133,9 +134,9 @@ Namespace HLA_VB
                                         AddLabel(label)
                                     Next
                                     labels.Clear()
-                                    m(r.PC) = instruction
+                                    m(depositLocation) = instruction
 
-                                    r.PC += 1 ' TODO: What about pseudo-operations?
+                                    depositLocation += 1 ' TODO: What about pseudo-operations?
                                 Else ' it's a label holder
                                     With CType(instruction, Label)
                                         labels.Add(.LabelText) ' This will be added to the symbol table when the next instruction is stored in memory
@@ -174,7 +175,7 @@ Namespace HLA_VB
                     End If
                 Next
             End If
-            r.PC = 0
+
             Return (m, r, errors)
         End Function
 
@@ -190,6 +191,12 @@ Namespace HLA_VB
                 If word.w.HasContents Then
                     Console.WriteLine($"{word.Address,4} {word.w}")
                 End If
+            Next
+        End Sub
+
+        Sub DisplayRegisters(r As Registers)
+            For Each register In r.Contents()
+                Console.WriteLine($"{register.Name,-8} {register.contents,8}")
             Next
         End Sub
 
@@ -245,6 +252,7 @@ Namespace HLA_VB
                         End If
                     Case "E"
                         ExecuteProgram(m, r)
+                        displayRegisters(r)
                     Case "N"
                         program = NewHLAProgram()
                         m.Clear()

@@ -142,6 +142,14 @@ Namespace HLA_VB
 
                 End Set
             End Property
+
+            Public Iterator Function Contents() As IEnumerable(Of (Name As String, contents As String))
+                For i = 0 To HIGHEST_REGISTER_NUMBER
+                    Yield ($"R{i}", $"{Me(i)}") ' TODO: in hex?
+                Next
+                Yield (("PC", Me.PC))
+                Yield (("Status", $"EQ: {Me.EQ}, GT: {Me.GT}"))
+            End Function
         End Class
 
         Public Class MemoryLocation
@@ -337,7 +345,7 @@ Namespace HLA_VB
         MustInherit Class MemoryReferenceInstruction
             Inherits Instruction
 
-            public Rd As Integer
+            Public Rd As Integer
 
             Public location As Integer
             Public locationLabel As String

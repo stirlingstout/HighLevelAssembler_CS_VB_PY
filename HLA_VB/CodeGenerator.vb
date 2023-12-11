@@ -374,5 +374,15 @@ Module CodeGenerator
             Return New List(Of MemoryLocation)() From {New Data(0)}
         End If
     End Function
+
+    Function StartPseudoOperation(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' DATA 100
+        '   0   1
+        If t.Count > 2 Then ' Remember t has an EndOfText token at the end
+            Return New List(Of MemoryLocation)() From {New Data(t(1).i)}
+        Else
+            Return New List(Of MemoryLocation)() From {New Data(0)}
+        End If
+    End Function
 #End Region
 End Module

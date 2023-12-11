@@ -31,7 +31,8 @@ Public Class Parser
 ("IF R1 ?o ?2 THEN".ToTokens(), AddressOf IFStatement),
 ("ELSE IF R1 ?o ?2 THEN".ToTokens(), AddressOf ELSEIFStatement),
 ("ELSE".ToTokens(), AddressOf ELSEStatement),
-("END IF".ToTokens(), AddressOf ENDIFStatement)
+("END IF".ToTokens(), AddressOf ENDIFStatement),
+("START ?a".ToTokens(), AddressOf StartPseudoOperation)
 }
     ' TODO: consider if we want to allow branch instructions to address without labels
     ' TODO: the LDR and STR could be condensed if we have a wildcard that can match an integer or an identifier
