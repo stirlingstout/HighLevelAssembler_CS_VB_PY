@@ -174,8 +174,8 @@ Namespace HLA_VB
                     Select Case ch
                         Case "?"
                             NextCharacter()
-                            sym = Char.ToUpper(ch)                ' ?2 matches a register or an integer, ?o matches an operator, ?i matches an identifier
-                            type = TokenType.Wildcard
+                            sym = Char.ToUpper(ch)           ' ?2 matches a register or an integer, ?o matches an operator, ?i matches an identifier
+                            type = TokenType.Wildcard           ' ?a matches an integer or an identifier
                             NextCharacter()
                         Case ",", "#", "[", "]", "(", ")", ":"
                             sym = ch
@@ -262,6 +262,8 @@ Namespace HLA_VB
                         result = (first.type = TokenType.Identifier)
                     Case "O"
                         result = (first.type = TokenType.Symbol)
+                    Case "A" ' either a label or an address
+                        result = (first.type = TokenType.Identifier OrElse first.type = TokenType.IntegerLiteral)
                     Case Else
                         Debug.Fail($"Unrecognised wildcard {second.w}")
                 End Select

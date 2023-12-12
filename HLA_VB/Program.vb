@@ -136,11 +136,23 @@ Namespace HLA_VB
                                     labels.Clear()
                                     m(depositLocation) = instruction
 
-                                    depositLocation += 1 ' TODO: What about pseudo-operations?
-                                Else ' it's a label holder
-                                    With CType(instruction, Label)
-                                        labels.Add(.LabelText) ' This will be added to the symbol table when the next instruction is stored in memory
-                                    End With
+                                    depositLocation += 1
+                                ElseIf instruction.IsPseudoOperation() Then
+                                    Select Case TypeName(instruction)
+                                        Case "Label"
+                                            With CType(instruction, Label)
+                                                labels.Add(.LabelText) ' This will be added to the symbol table when the next instruction is stored in memory
+                                            End With
+                                        Case "StartExecution"
+                                            With CType(instruction, StartExecution)
+                                                If Not Memory.ValidAddress(.location) Then
+                                                    If Not symbolTable.TryGetValue(.locationLabel, .location) Then
+                                                        Throw New Exception($"Execution start label { .locationLabel} not defined earlier")
+                                                    End If
+                                                End If
+                                                r.PC = .location
+                                            End With
+                                    End Select
                                 End If
                             Next
                         Catch ex As Exception

@@ -1,6 +1,4 @@
 ﻿Imports System.Data
-Imports System.Runtime.CompilerServices
-Imports System.Security.Cryptography
 Imports HLA_VB.HLA_VB.Instructions
 Imports HLA_VB.HLA_VB.Scanner
 
@@ -122,7 +120,7 @@ Module CodeGenerator
     Function SimpleIFStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
         ' IF Rn ?o  ?2 GOTO Start (may need another wildcard if we allow labels and integers, i.e., branches to direct addresses)
         ' 0  1  2   3  4    5
-        Return ComparisonBranchIfTrue(t(1).r, t(2).sym, t(3), "", t(5).id)
+        Return ComparisonBranchIfTrue(t(1).r, t(2).sym, t(3), t(5).id)
     End Function
 
     Function BAlwaysLabel(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
@@ -318,7 +316,7 @@ Module CodeGenerator
         Return result
     End Function
 
-    Function ComparisonBranchIfTrue(r As Integer, op As String, operand2 As Token, CMPLabel As String, destination As String) As List(Of MemoryLocation)
+    Function ComparisonBranchIfTrue(r As Integer, op As String, operand2 As Token, destination As String) As List(Of MemoryLocation)
         Return ComparisonBranchIfFalse(r, OppositeComparison(op), operand2, "", destination)
     End Function
 
@@ -376,12 +374,12 @@ Module CodeGenerator
     End Function
 
     Function StartPseudoOperation(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' DATA 100
+        ' START 100/label
         '   0   1
-        If t.Count > 2 Then ' Remember t has an EndOfText token at the end
-            Return New List(Of MemoryLocation)() From {New Data(t(1).i)}
+        If t(1).type = TokenType.IntegerLiteral Then
+            Return New List(Of MemoryLocation)() From {New StartExecution(t(1).i)}
         Else
-            Return New List(Of MemoryLocation)() From {New Data(0)}
+            Return New List(Of MemoryLocation)() From {New StartExecution(t(1).id)}
         End If
     End Function
 #End Region

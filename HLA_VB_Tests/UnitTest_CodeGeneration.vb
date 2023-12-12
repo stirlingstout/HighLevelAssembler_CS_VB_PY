@@ -477,5 +477,33 @@ Namespace HLA_VB_Tests
             Assert.IsTrue(TypeOf m(19) Is Data)
             Assert.AreEqual(70, m(19).GetValue())
         End Sub
+
+        <TestMethod>
+        Sub TestCodeGeneration21()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program = (New StreamReader("Program5.hla")).ReadToEnd().Split(Environment.NewLine).ToList()
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            Assert.AreEqual(3, r.PC)
+            ExecuteProgram(m, r)
+            Assert.AreEqual(0, errors.Count)
+
+            Assert.AreEqual(10, r(1))
+            Assert.AreEqual(20, r(2))
+            Assert.AreEqual(30, r(3))
+
+            Assert.IsTrue(TypeOf m(0) Is Data)
+            Assert.AreEqual(10, m(0).GetValue())
+            Assert.IsTrue(TypeOf m(1) Is Data)
+            Assert.AreEqual(20, m(1).GetValue())
+            Assert.IsTrue(TypeOf m(2) Is Data)
+            Assert.AreEqual(30, m(2).GetValue())
+        End Sub
     End Class
 End Namespace

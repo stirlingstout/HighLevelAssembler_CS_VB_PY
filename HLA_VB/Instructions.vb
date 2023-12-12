@@ -152,7 +152,7 @@ Namespace HLA_VB
             End Function
         End Class
 
-        Public Class MemoryLocation
+        Public Class MemoryLocation ' TODO: think of a better name
             Public Const MEMORY_LABEL_WIDTH = 10
 
             Public ReadOnly labels As List(Of String) ' But contents can be altered
@@ -186,6 +186,12 @@ Namespace HLA_VB
             End Function
 
             Overridable ReadOnly Property IsExecutable As Boolean
+                Get
+                    Return False
+                End Get
+            End Property
+
+            Overridable ReadOnly Property IsPseudoOperation As Boolean
                 Get
                     Return False
                 End Get
@@ -265,12 +271,50 @@ Namespace HLA_VB
             End Property
         End Class
 
+#Region "Pseudo-operations (don't generate any code/data)"
+
+        Class PseudoOperation
+            Inherits MemoryLocation
+
+            Public Overrides ReadOnly Property IsPseudoOperation As Boolean
+                Get
+                    Return True
+                End Get
+            End Property
+
+            Public Overrides ReadOnly Property UsesMemory As Boolean
+                Get
+                    Return False
+                End Get
+            End Property
+        End Class
+
         ''' <summary>
-        ''' Instances of this class should never be stored in a memory. They are just used to carry a 
-        ''' label back from code generation
+        ''' Supplies the start address from which the program executes. The name of this
+        ''' class, as well as that of Label, is used in CompileHLA so may need checking
+        ''' if you rename it!
+        ''' </summary>
+        Class StartExecution
+            Inherits PseudoOperation
+
+            Public Property location As Integer
+            Public Property locationLabel As String
+
+            Sub New(location As Integer)
+                Me.location = location
+            End Sub
+
+            Sub New(locationLabel As String)
+                Me.location = -1
+                Me.locationLabel = locationLabel
+            End Sub
+        End Class
+
+        ''' <summary>
+        ''' Instances of this class are just used to carry a generated label back from code generation, e.g., FOR0
         ''' </summary>
         Class Label
-            Inherits MemoryLocation
+            Inherits PseudoOperation
 
             Public Property LabelText As String
 
@@ -298,13 +342,9 @@ Namespace HLA_VB
             Overrides Sub Execute(r As Registers)
                 Throw New DataException($"Attempt to execute label holder as arithmetic/logic instruction")
             End Sub
-
-            Public Overrides ReadOnly Property UsesMemory As Boolean
-                Get
-                    Return False
-                End Get
-            End Property
         End Class
+
+#End Region
 
         MustInherit Class Instruction
             Inherits MemoryLocation
