@@ -1,20 +1,23 @@
 
 
-A: DATA
-B: DATA
-C: DATA
-
 begin:R1 = 0
 again:
 R1 = R1 + 1
 R1 = R1 + 1
 R2 = R1 + R1
 IF R1 < 10 GOTO again
-MEMORY[A] = R1
-MEMORY[B] = R2
+MEMORY[100] = R1
+MEMORY[101] = R2
 R3 = R1 + R2
-MEMORY[C] = R3
+MEMORY[102] = R3
 ' END ' Not having an END/HALT means executing data, i.e., a run-time error
+
 HALT
 
-execute begin
+EXEcute begin
+
+location 100
+
+ DATA
+DATA
+DATA

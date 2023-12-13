@@ -370,7 +370,7 @@ Module CodeGenerator
     End Function
 
     Function StartPseudoOperation(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' START 100/label
+        ' EXECUTE 100/label
         '   0   1
         If t(1).type = TokenType.IntegerLiteral Then
             Return New List(Of MemoryLocation)() From {New StartExecution(t(1).i)}
@@ -378,5 +378,12 @@ Module CodeGenerator
             Return New List(Of MemoryLocation)() From {New StartExecution(t(1).id)}
         End If
     End Function
+
+    Function LocationPseudoOperation(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' Location 100
+        '   0       1
+        Return New List(Of MemoryLocation)() From {New Location(t(1).i)}
+    End Function
+
 #End Region
 End Module

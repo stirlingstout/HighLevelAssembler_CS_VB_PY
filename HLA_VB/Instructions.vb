@@ -291,7 +291,7 @@ Namespace HLA_VB
 
         ''' <summary>
         ''' Supplies the start address from which the program executes. The name of this
-        ''' class, as well as that of Label, is used in CompileHLA so may need checking
+        ''' class, as well as that of Label and Location, is used in CompileHLA so may need checking
         ''' if you rename it!
         ''' </summary>
         Class StartExecution
@@ -341,6 +341,19 @@ Namespace HLA_VB
 
             Overrides Sub Execute(r As Registers)
                 Throw New DataException($"Attempt to execute label holder as arithmetic/logic instruction")
+            End Sub
+        End Class
+
+        ''' <summary>
+        ''' Supplies the address (numerical only) at which the next instruction/data is to be deposited
+        ''' </summary>
+        Class Location
+            Inherits PseudoOperation
+
+            Public Property location As Integer
+
+            Sub New(location As Integer)
+                Me.location = location
             End Sub
         End Class
 

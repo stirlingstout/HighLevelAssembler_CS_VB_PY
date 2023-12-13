@@ -15,6 +15,9 @@ Namespace HLA_VB
             EndOfText
         End Enum
 
+        ''' <summary>
+        ''' Location and Start need to be keywords otherwise if they are just identifiers there are two possible parses for each
+        ''' </summary>
         Public Enum KeywordType
             [IF]
             [MEMORY]
@@ -29,6 +32,8 @@ Namespace HLA_VB
             [WHILE]
             [THEN]
             [ELSE]
+            [LOCATION]
+            [EXECUTE]
         End Enum
 
         Class Token
@@ -106,7 +111,9 @@ Namespace HLA_VB
                                             "UNTIL",
                                             "WHILE",
                                             "THEN",
-                                            "ELSE"}
+                                            "ELSE",
+                                            "LOCATION",
+                                            "EXECUTE"}
 
             Private ReadOnly keywords = New List(Of KeywordType) From
                                             {KeywordType.IF,
@@ -117,7 +124,8 @@ Namespace HLA_VB
                                             KeywordType.FOR, KeywordType.TO, KeywordType.DOWNTO,
                                             KeywordType.REPEAT, KeywordType.UNTIL,
                                             KeywordType.WHILE,
-                                            KeywordType.THEN, KeywordType.ELSE}
+                                            KeywordType.THEN, KeywordType.ELSE,
+                                            KeywordType.LOCATION, KeywordType.EXECUTE}
 
             Public t As Token
 

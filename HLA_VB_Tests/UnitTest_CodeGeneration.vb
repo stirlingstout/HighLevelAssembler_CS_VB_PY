@@ -400,8 +400,9 @@ Namespace HLA_VB_Tests
                 r = .registers
                 errors = .errorList
             End With
-            ExecuteProgram(m, r)
             Assert.AreEqual(0, errors.Count)
+            ExecuteProgram(m, r)
+
             Assert.AreEqual(12, r(1))
             Assert.AreEqual(24, r(2))
             Assert.AreEqual(19, r(3))
@@ -420,8 +421,9 @@ Namespace HLA_VB_Tests
                 r = .registers
                 errors = .errorList
             End With
-            ExecuteProgram(m, r)
             Assert.AreEqual(0, errors.Count)
+            ExecuteProgram(m, r)
+
             Assert.AreEqual(10, r(1))
             Assert.AreEqual(20, r(2))
             Assert.AreEqual(30, r(3))
@@ -463,8 +465,8 @@ Namespace HLA_VB_Tests
                 r = .registers
                 errors = .errorList
             End With
-            ExecuteProgram(m, r)
             Assert.AreEqual(0, errors.Count)
+            ExecuteProgram(m, r)
 
             Assert.AreEqual(63, r(0))
             Assert.AreEqual(51, r(3))
@@ -490,9 +492,10 @@ Namespace HLA_VB_Tests
                 r = .registers
                 errors = .errorList
             End With
+            Assert.AreEqual(0, errors.Count)
             Assert.AreEqual(3, r.PC)
             ExecuteProgram(m, r)
-            Assert.AreEqual(0, errors.Count)
+
 
             Assert.AreEqual(10, r(1))
             Assert.AreEqual(20, r(2))
@@ -504,6 +507,58 @@ Namespace HLA_VB_Tests
             Assert.AreEqual(20, m(1).GetValue())
             Assert.IsTrue(TypeOf m(2) Is Data)
             Assert.AreEqual(30, m(2).GetValue())
+        End Sub
+
+        <TestMethod>
+        Sub TestCodeGeneration22()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program As New List(Of String) From {"HALT", "LOcation 100", "DATA 1", "DATA 2", "DATA 3"}
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            Assert.AreEqual(0, errors.Count)
+            Assert.AreEqual(0, r.PC)
+            ExecuteProgram(m, r)
+
+            Assert.IsTrue(TypeOf m(100) Is Data)
+            Assert.AreEqual(1, m(100).GetValue())
+            Assert.IsTrue(TypeOf m(101) Is Data)
+            Assert.AreEqual(2, m(101).GetValue())
+            Assert.IsTrue(TypeOf m(102) Is Data)
+            Assert.AreEqual(3, m(102).GetValue())
+        End Sub
+
+        <TestMethod>
+        Sub TestCodeGeneration23()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program = (New StreamReader("Program6.hla")).ReadToEnd().Split(Environment.NewLine).ToList()
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            Assert.AreEqual(0, r.PC)
+            ExecuteProgram(m, r)
+            Assert.AreEqual(0, errors.Count)
+
+            Assert.AreEqual(10, r(1))
+            Assert.AreEqual(20, r(2))
+            Assert.AreEqual(30, r(3))
+
+            Assert.IsTrue(TypeOf m(100) Is Data)
+            Assert.AreEqual(10, m(100).GetValue())
+            Assert.IsTrue(TypeOf m(101) Is Data)
+            Assert.AreEqual(20, m(101).GetValue())
+            Assert.IsTrue(TypeOf m(102) Is Data)
+            Assert.AreEqual(30, m(102).GetValue())
         End Sub
     End Class
 End Namespace

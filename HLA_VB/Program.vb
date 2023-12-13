@@ -135,7 +135,7 @@ Namespace HLA_VB
                                     Next
                                     labels.Clear()
                                     m(depositLocation) = instruction
-
+                                    '
                                     depositLocation += 1
                                 ElseIf instruction.IsPseudoOperation() Then
                                     Select Case TypeName(instruction)
@@ -151,6 +151,10 @@ Namespace HLA_VB
                                                     End If
                                                 End If
                                                 r.PC = .location
+                                            End With
+                                        Case "Location"
+                                            With CType(instruction, Location)
+                                                depositLocation = .location
                                             End With
                                     End Select
                                 End If
