@@ -264,7 +264,7 @@ Namespace HLA_VB
                         End If
                     Case "E"
                         ExecuteProgram(m, r)
-                        displayRegisters(r)
+                        DisplayRegisters(r)
                     Case "N"
                         program = NewHLAProgram()
                         m.Clear()

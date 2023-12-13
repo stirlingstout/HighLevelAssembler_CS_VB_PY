@@ -8,27 +8,23 @@ Module CodeGenerator
     ' memory locations/instructions. List because IF ... GOTO generates two instructions and some of the
     ' control structures generate even more
     Function LDRDirect(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = MEMORY[100]
-        ' 0  1  2    3 4 5
-        Return New List(Of MemoryLocation)() From {New LoadInstructionDirect(t(0).r, t(4).i)}
-    End Function
-
-    Function LDRDirectLabel(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = MEMORY[Start]
-        ' 0  1  2 3  4  5
-        Return New List(Of MemoryLocation)() From {New LoadInstructionDirect(t(0).r, t(4).id)}
+        ' Rd = MEMORY[100/Start]
+        ' 0  1  2    3   4     5
+        If t(4).type = TokenType.IntegerLiteral Then
+            Return New List(Of MemoryLocation)() From {New LoadInstructionDirect(t(0).r, t(4).i)}
+        Else
+            Return New List(Of MemoryLocation)() From {New LoadInstructionDirect(t(0).r, t(4).id)}
+        End If
     End Function
 
     Function STRDirect(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' MEMORY[100] = Rd
-        '  0 1 2 3 4 5
-        Return New List(Of MemoryLocation)() From {New StoreInstructionDirect(t(5).r, t(2).i)}
-    End Function
-
-    Function STRDirectLabel(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' MEMORY[Start] = Rd
-        '  0 1  2  3 4 5
-        Return New List(Of MemoryLocation)() From {New StoreInstructionDirect(t(5).r, t(2).id)}
+        ' MEMORY[100/Start] = Rd
+        '  0    1   2     3 4 5
+        If t(2).type = TokenType.IntegerLiteral Then
+            Return New List(Of MemoryLocation)() From {New StoreInstructionDirect(t(5).r, t(2).i)}
+        Else
+            Return New List(Of MemoryLocation)() From {New StoreInstructionDirect(t(5).r, t(2).id)}
+        End If
     End Function
 
     Function ArithmeticOperation(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
@@ -108,7 +104,7 @@ Module CodeGenerator
     End Function
 
     Function MVNOperation(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
-        ' Rd = NOT ?2
+        ' Rd = NOT ?2 a 
         ' 0  1 2   3
         If t(3).type = TokenType.Register Then
             Return New List(Of MemoryLocation)() From {New MVNRegisterInstruction(t(0).r, t(3).r)}
