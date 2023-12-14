@@ -154,7 +154,11 @@ Namespace HLA_VB
                                             End With
                                         Case "Location"
                                             With CType(instruction, Location)
-                                                depositLocation = .location
+                                                If .location > depositLocation Then
+                                                    depositLocation = .location
+                                                Else
+                                                    Throw New Exception($"Attempt made to move the deposit location backward from {depositLocation} to { .location}")
+                                                End If
                                             End With
                                     End Select
                                 End If

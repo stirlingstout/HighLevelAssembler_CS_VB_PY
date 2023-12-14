@@ -560,5 +560,22 @@ Namespace HLA_VB_Tests
             Assert.IsTrue(TypeOf m(102) Is Data)
             Assert.AreEqual(30, m(102).GetValue())
         End Sub
+
+        <TestMethod>
+        Sub TestCodeGeneration24()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+
+            Dim program = New List(Of String)() From {"R1 = R1 + 5", "LOcation 0"}
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            Assert.AreEqual(1, errors.Count)
+            Assert.IsTrue(errors(0).StartsWith("Attempt made to move the deposit location backward from 1 to 0"))
+
+        End Sub
     End Class
 End Namespace
