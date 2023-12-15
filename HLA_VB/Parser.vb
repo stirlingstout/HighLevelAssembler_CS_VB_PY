@@ -5,12 +5,14 @@ Imports HLA_VB.HLA_VB.Scanner
 
 Public Class Parser
 
-    Public Shared ReadOnly patterns As New List(Of (pattern As IEnumerable(Of Token), generator As Func(Of List(Of Token), List(Of MemoryLocation)))) From
+    Public Shared ReadOnly patterns As New List(Of (pattern As IEnumerable(Of Token), generator As Func(Of List(Of Token), List(Of Instruction)))) From
 {
 ("R0 = MEMORY[?a]".ToTokens(), AddressOf LDRDirect),
 ("R0 = MEMORY[R1]".ToTokens(), AddressOf LDRIndirect),
-("MEMORY[R1] = R0".ToTokens(), AddressOf STRIndirect),
+("R0 = MEMORY[R1 ?o 100]".ToTokens(), AddressOf LDRIndirectOffset),
 ("MEMORY[?a] = R0".ToTokens(), AddressOf STRDirect),
+("MEMORY[R1] = R0".ToTokens(), AddressOf STRIndirect),
+("MEMORY[R1 ?o 100] = R0".ToTokens(), AddressOf STRIndirectOffset),
 ("R0 = R1 ?o ?2".ToTokens(), AddressOf ArithmeticOperation),
 ("R0 = R1 ?i R2".ToTokens(), AddressOf LogicOperation),
 ("R0 = R1 ?i 100".ToTokens(), AddressOf LogicOperation),

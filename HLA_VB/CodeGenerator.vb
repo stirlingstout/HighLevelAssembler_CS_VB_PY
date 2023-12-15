@@ -7,39 +7,63 @@ Module CodeGenerator
     ' These functions take a list of tokens representing the current line and return a list of
     ' memory locations/instructions. List because IF ... GOTO generates two instructions and some of the
     ' control structures generate even more
-    Function LDRDirect(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function LDRDirect(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' Rd = MEMORY[100/Start]
         ' 0  1  2    3   4     5
         If t(4).type = TokenType.IntegerLiteral Then
-            Return New List(Of MemoryLocation)() From {New LoadInstructionDirect(t(0).r, t(4).i)}
+            Return New List(Of Instruction)() From {New LoadInstructionDirect(t(0).r, t(4).i)}
         Else
-            Return New List(Of MemoryLocation)() From {New LoadInstructionDirect(t(0).r, t(4).id)}
+            Return New List(Of Instruction)() From {New LoadInstructionDirect(t(0).r, t(4).id)}
         End If
     End Function
 
-    Function STRDirect(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function STRDirect(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' MEMORY[100/Start] = Rd
         '  0    1   2     3 4 5
         If t(2).type = TokenType.IntegerLiteral Then
-            Return New List(Of MemoryLocation)() From {New StoreInstructionDirect(t(5).r, t(2).i)}
+            Return New List(Of Instruction)() From {New StoreInstructionDirect(t(5).r, t(2).i)}
         Else
-            Return New List(Of MemoryLocation)() From {New StoreInstructionDirect(t(5).r, t(2).id)}
+            Return New List(Of Instruction)() From {New StoreInstructionDirect(t(5).r, t(2).id)}
         End If
     End Function
 
-    Function LDRIndirect(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function LDRIndirect(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' Rd = MEMORY[Rn]
         ' 0  1  2    3 45
-        Return New List(Of MemoryLocation)() From {New LoadInstructionIndirect(t(0).r, t(4).r)}
+        Return New List(Of Instruction)() From {New LoadInstructionIndirect(t(0).r, t(4).r)}
     End Function
 
-    Function STRIndirect(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function LDRIndirectOffset(t As IEnumerable(Of Token)) As List(Of Instruction)
+        ' Rd = MEMORY[Rn +/- 100]
+        ' 0  1  2    3   4    5 6
+        If t(4).sym = "+" Then
+            Return New List(Of Instruction)() From {New LoadInstructionIndirect(t(0).r, t(4).r, t(5).i)}
+        ElseIf t(4).sym = "-" Then
+            Return New List(Of Instruction)() From {New LoadInstructionIndirect(t(0).r, t(4).r, -t(5).i)}
+        Else
+            Throw New Exception($"Invalid operator match for {t(3).sym}")
+        End If
+    End Function
+
+    Function STRIndirect(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' MEMORY[Rn] = Rd
         '  0    1 23 4 5
-        Return New List(Of MemoryLocation)() From {New StoreInstructionIndirect(t(5).r, t(2).r)}
+        Return New List(Of Instruction)() From {New StoreInstructionIndirect(t(5).r, t(2).r)}
     End Function
 
-    Function ArithmeticOperation(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function STRIndirectOffset(t As IEnumerable(Of Token)) As List(Of Instruction)
+        ' MEMORY[Rn +/- 100] = Rd
+        '  0    1 2  3   4 5 6 7
+        If t(3).sym = "+" Then
+            Return New List(Of Instruction)() From {New StoreInstructionIndirect(t(7).r, t(2).r, t(4).i)}
+        ElseIf t(3).sym = "-" Then
+            Return New List(Of Instruction)() From {New StoreInstructionIndirect(t(7).r, t(4).r, -t(4).i)}
+        Else
+            Throw New Exception($"Invalid operator match for {t(3).sym}")
+        End If
+    End Function
+
+    Function ArithmeticOperation(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' Rd = Rn ?o ?2
         ' 0  1 2  3  4
         Dim i As Instruction
@@ -72,10 +96,10 @@ Module CodeGenerator
                 Throw New Exception($"Invalid operator match for {t(3).sym}")
                 i = Nothing
         End Select
-        Return New List(Of MemoryLocation)() From {i}
+        Return New List(Of Instruction)() From {i}
     End Function
 
-    Function LogicOperation(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function LogicOperation(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' Rd = Rn ?i ?2
         ' 0  1 2  3  4
         Dim i As Instruction
@@ -102,47 +126,47 @@ Module CodeGenerator
                 Throw New Exception($"Invalid operator match for {t(3).sym}")
                 i = Nothing
         End Select
-        Return New List(Of MemoryLocation)() From {i}
+        Return New List(Of Instruction)() From {i}
     End Function
 
-    Function MOVOperation(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function MOVOperation(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' Rd = ?2
         ' 0  1 2
         If t(2).type = TokenType.Register Then
-            Return New List(Of MemoryLocation)() From {New MOVRegisterInstruction(t(0).r, t(2).r)}
+            Return New List(Of Instruction)() From {New MOVRegisterInstruction(t(0).r, t(2).r)}
         Else
-            Return New List(Of MemoryLocation)() From {New MOVImmediateInstruction(t(0).r, t(2).i)}
+            Return New List(Of Instruction)() From {New MOVImmediateInstruction(t(0).r, t(2).i)}
         End If
     End Function
 
-    Function MVNOperation(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function MVNOperation(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' Rd = NOT ?2 a 
         ' 0  1 2   3
         If t(3).type = TokenType.Register Then
-            Return New List(Of MemoryLocation)() From {New MVNRegisterInstruction(t(0).r, t(3).r)}
+            Return New List(Of Instruction)() From {New MVNRegisterInstruction(t(0).r, t(3).r)}
         Else
-            Return New List(Of MemoryLocation)() From {New MVNImmediateInstruction(t(0).r, t(3).i)}
+            Return New List(Of Instruction)() From {New MVNImmediateInstruction(t(0).r, t(3).i)}
         End If
     End Function
 
-    Function SimpleIFStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function SimpleIFStatement(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' IF Rn ?o  ?2 GOTO Start (may need another wildcard if we allow labels and integers, i.e., branches to direct addresses)
         ' 0  1  2   3  4    5
         Return ComparisonBranchIfTrue(t(1).r, t(2).sym, t(3), t(5).id)
     End Function
 
-    Function BAlwaysLabel(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function BAlwaysLabel(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' GOTO Start
         ' 0      1
-        Return New List(Of MemoryLocation)() From {New BInstruction(t(1).id)}
+        Return New List(Of Instruction)() From {New BInstruction(t(1).id)}
     End Function
 
 #Disable Warning IDE0060 ' Remove unused parameter
-    Function HALT(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function HALT(t As IEnumerable(Of Token)) As List(Of Instruction)
 #Enable Warning IDE0060 ' Remove unused parameter
         ' HALT
         ' 0
-        Return New List(Of MemoryLocation)() From {New HALTInstruction()}
+        Return New List(Of Instruction)() From {New HALTInstruction()}
     End Function
 
 #Region "Control structures"
@@ -167,15 +191,15 @@ Module CodeGenerator
     End Sub
 
 #Disable Warning IDE0060 ' Remove unused parameter
-    Function REPEATStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function REPEATStatement(t As IEnumerable(Of Token)) As List(Of Instruction)
 #Enable Warning IDE0060 ' Remove unused parameter
         ' REPEAT
         ' 0
         REPEATCount += 1
-        Return New List(Of MemoryLocation)() From {New Label($"REPEAT{REPEATCount}")}
+        Return New List(Of Instruction)() From {New Label($"REPEAT{REPEATCount}")}
     End Function
 
-    Function UNTILStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function UNTILStatement(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' UNTIL R1 ?o ?2
         ' 0     1  2  3
         REPEATCount -= 1
@@ -184,12 +208,12 @@ Module CodeGenerator
         Return ComparisonBranchIfFalse(t(1).r, t(2).sym, t(3), "", destination)
     End Function
 
-    Function FORTOStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function FORTOStatement(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' FOR R1 = ?2 TO ?2
         '  0  1  2 3  4  5
         FORCount += 1
         FORStatements.Push((t(1).r, True))
-        Dim result As New List(Of MemoryLocation)
+        Dim result As New List(Of Instruction)
         If t(3).type = TokenType.Register Then
             result.Add(New MOVRegisterInstruction(t(1).r, t(3).r))
         Else
@@ -199,12 +223,12 @@ Module CodeGenerator
         Return result
     End Function
 
-    Function FORDOWNTOStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function FORDOWNTOStatement(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' FOR R1 = ?2 DOWNTO ?2
         '  0  1  2 3  4      5
         FORCount += 1
         FORStatements.Push((t(1).r, False))
-        Dim result As New List(Of MemoryLocation)
+        Dim result As New List(Of Instruction)
         If t(3).type = TokenType.Register Then
             result.Add(New MOVRegisterInstruction(t(1).r, t(3).r))
         Else
@@ -214,7 +238,7 @@ Module CodeGenerator
         Return result
     End Function
 
-    Function ENDFOR(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function ENDFOR(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' ENDFOR or END FOR
         '  0
         FORCount -= 1
@@ -228,7 +252,7 @@ Module CodeGenerator
                     ChangeIndex = New SUBImmediateInstruction(.rd, .rd, 1)
                 End If
             End With
-            Return New List(Of MemoryLocation)() From {ChangeIndex,
+            Return New List(Of Instruction)() From {ChangeIndex,
                                                    New BInstruction($"FOR{FORCount + 1}"),
                                                    New Label($"ENDFOR{FORCount + 1}")}
         Else
@@ -236,7 +260,7 @@ Module CodeGenerator
         End If
     End Function
 
-    Function WHILEStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function WHILEStatement(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' WHILE R1 ?o ?2
         ' 0     1  2  3
         WHILECount += 1
@@ -246,16 +270,16 @@ Module CodeGenerator
     End Function
 
 #Disable Warning IDE0060 ' Remove unused parameter
-    Function ENDWHILE(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function ENDWHILE(t As IEnumerable(Of Token)) As List(Of Instruction)
 #Enable Warning IDE0060 ' Remove unused parameter
         ' END WHILE
         '   0   1
         WHILECount -= 1
-        Return New List(Of MemoryLocation)() From {New BInstruction($"WHILE{WHILECount + 1}"),
+        Return New List(Of Instruction)() From {New BInstruction($"WHILE{WHILECount + 1}"),
                                                    New Label($"ENDWHILE{WHILECount + 1}")}
     End Function
 
-    Function IFStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function IFStatement(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' IF R1 ?o ?2 THEN
         ' 0  1  2  3  4
         IFCount += 1
@@ -285,7 +309,7 @@ Module CodeGenerator
         End Select
     End Function
 
-    Function ComparisonBranchIfFalse(r As Integer, op As String, operand2 As Token, CMPLabel As String, destination As String) As List(Of MemoryLocation)
+    Function ComparisonBranchIfFalse(r As Integer, op As String, operand2 As Token, CMPLabel As String, destination As String) As List(Of Instruction)
         Dim c, b, beq As Instruction
         ' beq used to handle UNTIL < (and <=, >=) using a BGT and a BEQ etc
         beq = Nothing
@@ -317,18 +341,18 @@ Module CodeGenerator
                 Throw New Exception($"Invalid operator {op} in IF statement")
                 b = Nothing
         End Select
-        Dim result = New List(Of MemoryLocation)() From {c, b}
+        Dim result = New List(Of Instruction)() From {c, b}
         If beq IsNot Nothing Then
             result.Add(New BEQInstruction(destination))
         End If
         Return result
     End Function
 
-    Function ComparisonBranchIfTrue(r As Integer, op As String, operand2 As Token, destination As String) As List(Of MemoryLocation)
+    Function ComparisonBranchIfTrue(r As Integer, op As String, operand2 As Token, destination As String) As List(Of Instruction)
         Return ComparisonBranchIfFalse(r, OppositeComparison(op), operand2, "", destination)
     End Function
 
-    Function ELSEIFStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function ELSEIFStatement(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' ELSE IF R1 ?o ?2 THEN
         ' 0    1  2  3  4  5
         If IFStatements.Any() Then
@@ -343,27 +367,27 @@ Module CodeGenerator
     End Function
 
 #Disable Warning IDE0060 ' Remove unused parameter
-    Function ELSEStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function ELSEStatement(t As IEnumerable(Of Token)) As List(Of Instruction)
 #Enable Warning IDE0060 ' Remove unused parameter
         ' ELSE
         ' 0
         If IFStatements.Any() Then
             Dim IFBlockNumber = IFStatements.Pop()
             IFStatements.Push(IFBlockNumber + 1)
-            Return New List(Of MemoryLocation) From {New BInstruction($"EIF{IFCount}"), New Label($"EIF{IFCount}_{IFBlockNumber}")}
+            Return New List(Of Instruction) From {New BInstruction($"EIF{IFCount}"), New Label($"EIF{IFCount}_{IFBlockNumber}")}
         Else
             Throw New Exception($"ELSE without a corresponding IF")
         End If
     End Function
 
 #Disable Warning IDE0060 ' Remove unused parameter
-    Function ENDIFStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function ENDIFStatement(t As IEnumerable(Of Token)) As List(Of Instruction)
 #Enable Warning IDE0060 ' Remove unused parameter
         ' END IF
         '  0  1
         If IFStatements.Any() Then
             Dim IFBlockNumber = IFStatements.Pop()
-            Return New List(Of MemoryLocation)() From {New Label($"EIF{IFCount}_{IFBlockNumber}"), New Label($"EIF{IFCount}")}
+            Return New List(Of Instruction)() From {New Label($"EIF{IFCount}_{IFBlockNumber}"), New Label($"EIF{IFCount}")}
         Else
             Throw New Exception("END IF without a corresponding IF")
         End If
@@ -371,30 +395,30 @@ Module CodeGenerator
 #End Region
 
 #Region "DATA and other pseudo-instructions"
-    Function DATAStatement(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function DATAStatement(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' DATA 100
         '   0   1
         If t.Count > 2 Then ' Remember t has an EndOfText token at the end
-            Return New List(Of MemoryLocation)() From {New Data(t(1).i)}
+            Return New List(Of Instruction)() From {New Data(t(1).i)}
         Else
-            Return New List(Of MemoryLocation)() From {New Data(0)}
+            Return New List(Of Instruction)() From {New Data(0)}
         End If
     End Function
 
-    Function StartPseudoOperation(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function StartPseudoOperation(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' EXECUTE 100/label
         '   0   1
         If t(1).type = TokenType.IntegerLiteral Then
-            Return New List(Of MemoryLocation)() From {New StartExecution(t(1).i)}
+            Return New List(Of Instruction)() From {New StartExecution(t(1).i)}
         Else
-            Return New List(Of MemoryLocation)() From {New StartExecution(t(1).id)}
+            Return New List(Of Instruction)() From {New StartExecution(t(1).id)}
         End If
     End Function
 
-    Function LocationPseudoOperation(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+    Function LocationPseudoOperation(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' Location 100
         '   0       1
-        Return New List(Of MemoryLocation)() From {New Location(t(1).i)}
+        Return New List(Of Instruction)() From {New Location(t(1).i)}
     End Function
 
 #End Region

@@ -157,6 +157,8 @@ Namespace HLA_VB
 
             Public ReadOnly labels As List(Of String) ' But contents can be altered
 
+            Public source As String
+
             Sub New()
                 labels = New List(Of String)
             End Sub
@@ -181,7 +183,8 @@ Namespace HLA_VB
                 If labels.Count = 0 Then
                     Return $"{String.Empty,-10} " ' Note space at end
                 Else
-                    Return String.Join(Environment.NewLine, labels.Select(Function(label) (label + ":").PadRight(10))) + " "
+                    Return String.Join(Environment.NewLine, labels.Select(Function(label, index) If(index > 0, "     ", "") + (label + ":").PadRight(10))) + " "
+                    ' TODO: the 5 spaces in the If function are the width of the address plus a space (see DisplayAssembly)
                 End If
             End Function
 
@@ -227,7 +230,7 @@ Namespace HLA_VB
         End Class
 
         Class Data
-            Inherits MemoryLocation
+            Inherits Instruction ' Strictly it's more of a MemoryLocation
 
             Private value As Integer
 
@@ -274,7 +277,7 @@ Namespace HLA_VB
 #Region "Pseudo-operations (don't generate any code/data)"
 
         Class PseudoOperation
-            Inherits MemoryLocation
+            Inherits Instruction
 
             Public Overrides ReadOnly Property IsPseudoOperation As Boolean
                 Get
@@ -297,16 +300,16 @@ Namespace HLA_VB
         Class StartExecution
             Inherits PseudoOperation
 
-            Public Property location As Integer
-            Public Property locationLabel As String
+            Public Property Location As Integer
+            Public Property LocationLabel As String
 
             Sub New(location As Integer)
-                Me.location = location
+                Me.Location = location
             End Sub
 
             Sub New(locationLabel As String)
-                Me.location = -1
-                Me.locationLabel = locationLabel
+                Me.Location = -1
+                Me.LocationLabel = locationLabel
             End Sub
         End Class
 
@@ -350,10 +353,10 @@ Namespace HLA_VB
         Class Location
             Inherits PseudoOperation
 
-            Public Property location As Integer
+            Public Property Location As Integer
 
             Sub New(location As Integer)
-                Me.location = location
+                Me.Location = location
             End Sub
         End Class
 
@@ -514,20 +517,6 @@ Namespace HLA_VB
             Public Rn As Integer
             Public offset As Integer
 
-            Sub New(toFromRegister As Integer, indexRegister As Integer)
-                If Registers.ValidRegister(toFromRegister) Then
-                    If Memory.ValidAddress(indexRegister) Then
-                        Rd = toFromRegister
-                        Rn = indexRegister
-                        offset = 0
-                    Else
-                        Throw New IndexOutOfRangeException($"Invalid index register {indexRegister}")
-                    End If
-                Else
-                    Throw New IndexOutOfRangeException($"Invalid register number {toFromRegister}")
-                End If
-            End Sub
-
             Sub New(toFromRegister As Integer, indexRegister As Integer, offset As Integer)
                 If Registers.ValidRegister(toFromRegister) Then
                     If Memory.ValidAddress(indexRegister) Then
@@ -548,25 +537,45 @@ Namespace HLA_VB
                 offset = CType(obj, MemoryReferenceInstructionIndirect).offset
             End Function
 
+            ''' <summary>
+            ''' Returns the printable version of the index expression, e.g., R1, R1 - 6, R2 + 4. The [] are not included
+            ''' </summary>
+            ''' <returns></returns>
+            Protected Function IndexExpression() As String
+                Dim offsetString As String
+                If offset > 0 Then
+                    offsetString = $" + {Math.Abs(offset)}"
+                ElseIf offset < 0 Then
+                    offsetString = $" - {Math.Abs(offset)}"
+                Else ' Must be 0
+                    offsetString = ""
+                End If
+                Return $"R{Rn}{offsetString}"
+            End Function
+
         End Class
 
         Class LoadInstructionIndirect
             Inherits MemoryReferenceInstructionIndirect
 
             Sub New(toRegister As Integer, indexRegister As Integer)
-                MyBase.New(toRegister, indexRegister)
+                MyBase.New(toRegister, indexRegister, 0)
+            End Sub
+
+            Sub New(toRegister As Integer, indexRegister As Integer, offset As Integer)
+                MyBase.New(toRegister, indexRegister, offset)
             End Sub
 
             Public Overrides Sub Execute(r As Registers, m As Memory)
-                If Memory.ValidAddress(r(Rn)) AndAlso TypeOf m(r(Rn)) Is Data Then
-                    r(Rd) = m(r(Rn)).GetValue()
+                If Memory.ValidAddress(r(Rn) + offset) AndAlso TypeOf m(r(Rn) + offset) Is Data Then
+                    r(Rd) = m(r(Rn) + offset).GetValue()
                 Else
-                    Throw New DataException($"Attempt to load indirect from an invalid or non-data location R{Rn} = {r(Rn)}")
+                    Throw New DataException($"Attempt to load indirect from an invalid or non-data location R{Rn} = {r(Rn) + offset}")
                 End If
             End Sub
 
             Public Overrides Function ToString() As String
-                Return $"{MyBase.ToString()}LDR  R{Rd}, [R{Rn}]"
+                Return $"{MyBase.ToString()}LDR  R{Rd}, [{Me.IndexExpression()}]"
             End Function
 
             Public Overrides Function Equals(obj As Object) As Boolean
@@ -578,14 +587,18 @@ Namespace HLA_VB
             Inherits MemoryReferenceInstructionIndirect
 
             Sub New(fromRegister As Integer, indexRegister As Integer)
-                MyBase.New(fromRegister, indexRegister)
+                MyBase.New(fromRegister, indexRegister, 0)
+            End Sub
+
+            Sub New(fromRegister As Integer, indexRegister As Integer, offset As Integer)
+                MyBase.New(fromRegister, indexRegister, offset)
             End Sub
 
             Public Overrides Sub Execute(r As Registers, m As Memory)
-                If Memory.ValidAddress(r(Rn)) AndAlso TypeOf m(r(Rn)) Is Data Then
-                    m(r(Rn)).SetValue(r(Rd))
+                If Memory.ValidAddress(r(Rn) + offset) AndAlso TypeOf m(r(Rn) + offset) Is Data Then
+                    m(r(Rn) + offset).SetValue(r(Rd))
                 Else
-                    Throw New DataException($"Attempt to store indirect into an invalid or non-data location R{Rn} = {r(Rn)}")
+                    Throw New DataException($"Attempt to store indirect into an invalid or non-data location R{Rn} = {r(Rn) + offset}")
                 End If
             End Sub
 
@@ -595,7 +608,7 @@ Namespace HLA_VB
             ' TODO see if this can be moved up the hierarchy into instruction. Is MyBase dynamic? MyClass/MyBase?
 
             Public Overrides Function ToString() As String
-                Return $"{MyBase.ToString()}STR  R{Rd}, [R{Rn}]"
+                Return $"{MyBase.ToString()}STR  R{Rd}, [{Me.IndexExpression()}]"
             End Function
         End Class
 #End Region

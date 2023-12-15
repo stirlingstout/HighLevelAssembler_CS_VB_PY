@@ -27,7 +27,7 @@ Namespace HLA_VB_Tests
             Dim l = New MemoryLocation()
             l.AddLabel("Hello")
             l.AddLabel("Goodbye")
-            Assert.AreEqual(("Hello:".PadRight(TotalWidth - 1) + Environment.NewLine + "Goodbye:".PadRight(TotalWidth)), l.ToString())
+            Assert.AreEqual(("Hello:".PadRight(TotalWidth - 1) + Environment.NewLine + "     Goodbye:   ".PadRight(TotalWidth)), l.ToString())
         End Sub
 
         <TestMethod>

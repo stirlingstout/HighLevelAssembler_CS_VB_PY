@@ -92,6 +92,9 @@ Namespace HLA_VB_Tests
 
             Assert.IsTrue(r(1) = 0)
 
+            For i = 0 To 8
+                Assert.IsTrue(m(101 + i).GetValue() <= m(102 + i).GetValue())
+            Next i
         End Sub
     End Class
 
