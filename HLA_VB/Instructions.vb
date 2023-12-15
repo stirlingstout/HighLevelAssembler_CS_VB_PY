@@ -57,13 +57,17 @@ Namespace HLA_VB
                 HALT
             End Enum
 
+            Public Const FP_REGISTER = 15
+            Public Const LR_REGISTER = 14
+            Public Const SP_REGISTER = 13
+
             Shared Function ValidRegister(r As Integer) As Boolean
                 Return r >= 0 And r <= HIGHEST_REGISTER_NUMBER
             End Function
 
             Private ReadOnly GP_Registers(HIGHEST_REGISTER_NUMBER) As Integer
-            Private _PC As Integer
-            Property PC As Integer
+            Private _PC As Integer ' If PC is a general purpose register then RETURN/END PROCEDURE becomes a MOV
+            Public Property PC As Integer
                 Get
                     Return _PC
                 End Get
@@ -76,12 +80,58 @@ Namespace HLA_VB
                 End Set
             End Property
 
+            Public Property FP As Integer
+                Get
+                    Return GP_Registers(FP_REGISTER)
+                End Get
+                Set(value As Integer)
+                    If Memory.ValidAddress(value) Then
+                        GP_Registers(FP_REGISTER) = value
+                    Else
+                        Throw New IndexOutOfRangeException($"Attempted to set FP to invalid value {value}")
+                    End If
+                End Set
+            End Property
+
+            Public Property LR As Integer
+                Get
+                    Return GP_Registers(LR_REGISTER)
+                End Get
+                Set(value As Integer)
+                    If Memory.ValidAddress(value) Then
+                        GP_Registers(LR_REGISTER) = value
+                    Else
+                        Throw New IndexOutOfRangeException($"Attempted to set LR to invalid value {value}")
+                    End If
+                End Set
+            End Property
+
+            ''' <summary>
+            ''' SP is decremented before storing when doing a push, so points to the last thing pushed
+            ''' </summary>
+            ''' <returns></returns>
+            Public Property SP As Integer
+                Get
+                    Return GP_Registers(SP_REGISTER)
+                End Get
+                Set(value As Integer)
+                    If Memory.ValidAddress(value) OrElse value = HIGHEST_MEMORY_ADDRESS + 1 Then ' Exception is for initialisation
+                        GP_Registers(SP_REGISTER) = value
+                    Else
+                        Throw New IndexOutOfRangeException($"Attempted to set SP to invalid value {value}")
+                    End If
+                End Set
+            End Property
+
             Private ReadOnly status_Register(Flags.HALT) As Boolean
 
             Sub New()
                 PC = 0
+                For r = 0 To HIGHEST_REGISTER_NUMBER
+                    GP_Registers(r) = 0
+                Next
+                SP = HIGHEST_MEMORY_ADDRESS + 1 ' Actually r(13)
                 status_Register(Flags.EQ) = False
-                status_Register(Flags.GT) = False
                 status_Register(Flags.HALT) = False
             End Sub
 
@@ -143,9 +193,22 @@ Namespace HLA_VB
                 End Set
             End Property
 
+            Shared Function RegisterName(r As Integer) As String
+                Select Case r
+                    Case LR_REGISTER
+                        Return "LR"
+                    Case SP_REGISTER
+                        Return "SP"
+                    Case FP_REGISTER
+                        Return "FP"
+                    Case Else
+                        Return $"R{r}"
+                End Select
+            End Function
+
             Public Iterator Function Contents() As IEnumerable(Of (Name As String, contents As String))
                 For i = 0 To HIGHEST_REGISTER_NUMBER
-                    Yield ($"R{i}", $"{Me(i)}") ' TODO: in hex?
+                    Yield ($"{RegisterName(i)}", $"{Me(i)}") ' TODO: in hex?
                 Next
                 Yield (("PC", Me.PC))
                 Yield (("Status", $"EQ: {Me.EQ}, GT: {Me.GT}"))
@@ -465,7 +528,7 @@ Namespace HLA_VB
             End Sub
 
             Public Overrides Function ToString() As String
-                Return $"{MyBase.ToString()}LDR  R{Rd}, {location} {locationLabel}"
+                Return $"{MyBase.ToString()}LDR  {Registers.RegisterName(Rd)}, {location} {locationLabel}"
             End Function
 
             Public Overrides Function Equals(obj As Object) As Boolean
@@ -506,7 +569,7 @@ Namespace HLA_VB
             ' TODO see if this can be moved up the hierarchy into instruction. Is MyBase dynamic? MyClass/MyBase?
 
             Public Overrides Function ToString() As String
-                Return $"{MyBase.ToString()}STR  R{Rd}, {location} {locationLabel}"
+                Return $"{MyBase.ToString()}STR  {Registers.RegisterName(Rd)}, {location} {locationLabel}"
             End Function
         End Class
 
@@ -550,7 +613,7 @@ Namespace HLA_VB
                 Else ' Must be 0
                     offsetString = ""
                 End If
-                Return $"R{Rn}{offsetString}"
+                Return $"{Registers.RegisterName(Rn)}{offsetString}"
             End Function
 
         End Class
@@ -575,7 +638,7 @@ Namespace HLA_VB
             End Sub
 
             Public Overrides Function ToString() As String
-                Return $"{MyBase.ToString()}LDR  R{Rd}, [{Me.IndexExpression()}]"
+                Return $"{MyBase.ToString()}LDR  {Registers.RegisterName(Rd)}, [{Me.IndexExpression()}]"
             End Function
 
             Public Overrides Function Equals(obj As Object) As Boolean
@@ -595,10 +658,10 @@ Namespace HLA_VB
             End Sub
 
             Public Overrides Sub Execute(r As Registers, m As Memory)
-                If Memory.ValidAddress(r(Rn) + offset) AndAlso TypeOf m(r(Rn) + offset) Is Data Then
-                    m(r(Rn) + offset).SetValue(r(Rd))
+                If Memory.ValidAddress(r(Rn) + offset) Then
+                    m(r(Rn) + offset) = New Data(r(Rd))
                 Else
-                    Throw New DataException($"Attempt to store indirect into an invalid or non-data location R{Rn} = {r(Rn) + offset}")
+                    Throw New DataException($"Attempt to store indirect into an invalid location R{Rn} = {r(Rn) + offset}")
                 End If
             End Sub
 
@@ -608,7 +671,7 @@ Namespace HLA_VB
             ' TODO see if this can be moved up the hierarchy into instruction. Is MyBase dynamic? MyClass/MyBase?
 
             Public Overrides Function ToString() As String
-                Return $"{MyBase.ToString()}STR  R{Rd}, [{Me.IndexExpression()}]"
+                Return $"{MyBase.ToString()}STR  {Registers.RegisterName(Rd)}, [{Me.IndexExpression()}]"
             End Function
         End Class
 #End Region
@@ -670,7 +733,7 @@ Namespace HLA_VB
             End Function
 
             Public Overrides Function ToString() As String
-                Return $"{MyBase.ToString()}{Me.Opcode,-4} R{Rd}, R{Rn}, R{Rm}"
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} {Registers.RegisterName(Rd)}, {Registers.RegisterName(Rn)}, {Registers.RegisterName(Rm)}"
             End Function
 
         End Class
@@ -691,7 +754,7 @@ Namespace HLA_VB
             End Function
 
             Public Overrides Function ToString() As String
-                Return $"{MyBase.ToString()}{Me.Opcode,-4} R{Rd}, R{Rn}, #{value}"
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} {Registers.RegisterName(Rd)}, {Registers.RegisterName(Rn)}, #{value}"
             End Function
 
         End Class
@@ -1010,7 +1073,7 @@ Namespace HLA_VB
             End Property
 
             Public Overrides Function ToString() As String
-                Return $"{MyBase.ToString()}{Me.Opcode,-4} R{Rd}, R{Rm}"
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} {Registers.RegisterName(Rd)}, {Registers.RegisterName(Rm)}"
             End Function
         End Class
 
@@ -1040,7 +1103,7 @@ Namespace HLA_VB
             End Property
 
             Public Overrides Function ToString() As String
-                Return $"{MyBase.ToString()}{Me.Opcode,-4} R{Rd}, #{value}"
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} {Registers.RegisterName(Rd)}, #{value}"
             End Function
         End Class
 
@@ -1074,7 +1137,7 @@ Namespace HLA_VB
             End Property
 
             Public Overrides Function ToString() As String
-                Return $"{MyBase.ToString()}{Me.Opcode,-4} R{Rd}, R{Rm}"
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} {Registers.RegisterName(Rd)}, {Registers.RegisterName(Rm)}"
             End Function
 
         End Class
@@ -1105,7 +1168,7 @@ Namespace HLA_VB
             End Property
 
             Public Overrides Function ToString() As String
-                Return $"{MyBase.ToString()}{Me.Opcode,-4} R{Rd}, #{value}"
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} {Registers.RegisterName(Rd)}, #{value}"
             End Function
         End Class
 
@@ -1139,7 +1202,7 @@ Namespace HLA_VB
             End Property
 
             Public Overrides Function ToString() As String
-                Return $"{MyBase.ToString()}{Me.Opcode,-4} R{Rd}, R{Rm}"
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} {Registers.RegisterName(Rd)}, {Registers.RegisterName(Rm)}"
             End Function
         End Class
 
@@ -1169,7 +1232,7 @@ Namespace HLA_VB
             End Property
 
             Public Overrides Function ToString() As String
-                Return $"{MyBase.ToString()}{Me.Opcode,-4} R{Rd}, #{value}"
+                Return $"{MyBase.ToString()}{Me.Opcode,-4} {Registers.RegisterName(Rd)}, #{value}"
             End Function
         End Class
 #End Region
@@ -1232,6 +1295,47 @@ Namespace HLA_VB
             Public Overrides ReadOnly Property Opcode As String
                 Get
                     Return "B"
+                End Get
+            End Property
+        End Class
+
+        Class BLInstruction
+            Inherits BranchInstruction
+
+            Sub New(destination As Integer)
+                MyBase.New(destination)
+            End Sub
+
+            Sub New(label As String)
+                MyBase.New(label)
+            End Sub
+
+            Public Overrides Sub Execute(r As Registers)
+                r.LR = r.PC ' PC has already been incremented when an instruction is executed
+                r.PC = destination ' Valid address throws an exception if this is invalid, i.e., -1
+            End Sub
+
+            Public Overrides ReadOnly Property Opcode As String
+                Get
+                    Return "BL"
+                End Get
+            End Property
+        End Class
+
+        Class RETURNInstruction
+            Inherits OddInstruction
+
+            Sub New()
+                MyBase.New()
+            End Sub
+
+            Public Overrides Sub Execute(r As Registers)
+                r.PC = r.LR ' Valid address throws an exception if this is invalid, i.e., -1
+            End Sub
+
+            Public Overrides ReadOnly Property opcode As String
+                Get
+                    Return "RET"
                 End Get
             End Property
         End Class

@@ -16,7 +16,7 @@ Namespace HLA_VB
         End Enum
 
         ''' <summary>
-        ''' Location and Start need to be keywords otherwise if they are just identifiers there are two possible parses for each
+        ''' Location, Start, and PROCEDURE need to be keywords otherwise if they are just identifiers there are two possible parses for each
         ''' </summary>
         Public Enum KeywordType
             [IF]
@@ -34,6 +34,8 @@ Namespace HLA_VB
             [ELSE]
             [LOCATION]
             [EXECUTE]
+            [PROCEDURE]
+            [RETURN]
         End Enum
 
         Class Token
@@ -113,7 +115,9 @@ Namespace HLA_VB
                                             "THEN",
                                             "ELSE",
                                             "LOCATION",
-                                            "EXECUTE"}
+                                            "EXECUTE",
+                                            "PROCEDURE",
+                                            "RETURN"}
 
             Private ReadOnly keywords = New List(Of KeywordType) From
                                             {KeywordType.IF,

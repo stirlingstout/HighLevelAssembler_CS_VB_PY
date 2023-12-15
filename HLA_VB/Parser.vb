@@ -35,7 +35,10 @@ Public Class Parser
 ("ELSE".ToTokens(), AddressOf ELSEStatement),
 ("END IF".ToTokens(), AddressOf ENDIFStatement),
 ("EXECUTE ?a".ToTokens(), AddressOf StartPseudoOperation),
-("LOCATION 100".ToTokens(), AddressOf LocationPseudoOperation)
+("LOCATION 100".ToTokens(), AddressOf LocationPseudoOperation),
+("CALL ?a".ToTokens(), AddressOf CALLStatement),
+("END PROCEDURE".ToTokens(), AddressOf ENDPROCEDUREStatement),
+("PROCEDURE Start".ToTokens(), AddressOf PROCEDUREDeclaration)
 }
     ' TODO: consider if we want to allow branch instructions to address without labels
     ' TODO: the LDR and STR could be condensed if we have a wildcard that can match an integer or an identifier

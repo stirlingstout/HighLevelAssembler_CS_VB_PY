@@ -35,13 +35,13 @@ Module CodeGenerator
 
     Function LDRIndirectOffset(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' Rd = MEMORY[Rn +/- 100]
-        ' 0  1  2    3   4    5 6
-        If t(4).sym = "+" Then
-            Return New List(Of Instruction)() From {New LoadInstructionIndirect(t(0).r, t(4).r, t(5).i)}
-        ElseIf t(4).sym = "-" Then
-            Return New List(Of Instruction)() From {New LoadInstructionIndirect(t(0).r, t(4).r, -t(5).i)}
+        ' 0  1  2    3 4 5    6 7
+        If t(5).sym = "+" Then
+            Return New List(Of Instruction)() From {New LoadInstructionIndirect(t(0).r, t(4).r, t(6).i)}
+        ElseIf t(5).sym = "-" Then
+            Return New List(Of Instruction)() From {New LoadInstructionIndirect(t(0).r, t(4).r, -t(6).i)}
         Else
-            Throw New Exception($"Invalid operator match for {t(3).sym}")
+            Throw New Exception($"Invalid operator match for {t(5).sym}")
         End If
     End Function
 
@@ -421,5 +421,35 @@ Module CodeGenerator
         Return New List(Of Instruction)() From {New Location(t(1).i)}
     End Function
 
+#End Region
+
+#Region "Call and return"
+    Function CALLStatement(t As IEnumerable(Of Token)) As List(Of Instruction)
+        ' CALL  AddPoints
+        '    0      1
+        Return New List(Of Instruction)() From {New BLInstruction(t(1).id)}
+    End Function
+
+#Disable Warning IDE0060 ' Remove unused parameter
+    Function ENDPROCEDUREStatement(t As IEnumerable(Of Token)) As List(Of Instruction)
+#Enable Warning IDE0060 ' Remove unused parameter
+        ' END PROCEDURE
+        '    0    1
+        Return New List(Of Instruction)() From {New MOVRegisterInstruction(Registers.SP_REGISTER, Registers.FP_REGISTER), ' Makes local variable inaccessible
+                                                New LoadInstructionIndirect(Registers.FP_REGISTER, Registers.SP_REGISTER, 0),
+                                                New LoadInstructionIndirect(Registers.LR_REGISTER, Registers.SP_REGISTER, +1),
+                                                New ADDImmediateInstruction(Registers.SP_REGISTER, Registers.SP_REGISTER, 2),
+                                                New RETURNInstruction()}
+    End Function
+
+    Function PROCEDUREDeclaration(t As IEnumerable(Of Token)) As List(Of Instruction)
+        ' PROCEDURE AddPoints
+        '    0      1
+        Return New List(Of Instruction)() From {New Label(t(1).id),
+                                                New SUBImmediateInstruction(Registers.SP_REGISTER, Registers.SP_REGISTER, 2),
+                                                New StoreInstructionIndirect(Registers.LR_REGISTER, Registers.SP_REGISTER, +1),
+                                                New StoreInstructionIndirect(Registers.FP_REGISTER, Registers.SP_REGISTER, 0),
+                                                New MOVRegisterInstruction(Registers.FP_REGISTER, Registers.SP_REGISTER)}
+    End Function
 #End Region
 End Module

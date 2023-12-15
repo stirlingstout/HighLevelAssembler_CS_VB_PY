@@ -1,0 +1,25 @@
+﻿' A point consists of an X and a Y
+
+Point1:	Data 5
+		Data 2
+
+Point2:	Data 10
+		Data 19
+
+Point3: data 0
+		data 0
+
+Start:	R0 = 0	' Point1
+
+		R2 = memory[R0]
+		R3 = memory[R0 + 1]
+		R4 = memory[R0 + 2]
+		R5 = memory[R0 + 3]
+
+		r2 = r2 + r4
+		r3 = r3 + r5
+		memory[r0 + 4] = r2
+		memory[r0 + 5] = r3
+		halt
+
+execute start
