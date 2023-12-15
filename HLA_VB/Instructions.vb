@@ -457,7 +457,7 @@ Namespace HLA_VB
                 If TypeOf m(location) Is Data Then
                     r(Rd) = m(location).GetValue()
                 Else
-                    Throw New DataException("Attempt to load from a non-data location")
+                    Throw New DataException($"Attempt to load from a non-data location {location} ({locationLabel})")
                 End If
             End Sub
 
@@ -493,7 +493,7 @@ Namespace HLA_VB
                 If TypeOf m(location) Is Data Then
                     m(location).SetValue(r(Rd))
                 Else
-                    Throw New DataException("Attempt to load from a non-data location")
+                    Throw New DataException($"Attempt to store into a non-data location {location} ({locationLabel})")
                 End If
             End Sub
 
@@ -504,6 +504,98 @@ Namespace HLA_VB
 
             Public Overrides Function ToString() As String
                 Return $"{MyBase.ToString()}STR  R{Rd}, {location} {locationLabel}"
+            End Function
+        End Class
+
+        MustInherit Class MemoryReferenceInstructionIndirect
+            Inherits Instruction
+
+            Public Rd As Integer
+            Public Rn As Integer
+            Public offset As Integer
+
+            Sub New(toFromRegister As Integer, indexRegister As Integer)
+                If Registers.ValidRegister(toFromRegister) Then
+                    If Memory.ValidAddress(indexRegister) Then
+                        Rd = toFromRegister
+                        Rn = indexRegister
+                        offset = 0
+                    Else
+                        Throw New IndexOutOfRangeException($"Invalid index register {indexRegister}")
+                    End If
+                Else
+                    Throw New IndexOutOfRangeException($"Invalid register number {toFromRegister}")
+                End If
+            End Sub
+
+            Sub New(toFromRegister As Integer, indexRegister As Integer, offset As Integer)
+                If Registers.ValidRegister(toFromRegister) Then
+                    If Memory.ValidAddress(indexRegister) Then
+                        Rd = toFromRegister
+                        Rn = indexRegister
+                        Me.offset = offset
+                    Else
+                        Throw New IndexOutOfRangeException($"Invalid index register {indexRegister}")
+                    End If
+                Else
+                    Throw New IndexOutOfRangeException($"Invalid register number {toFromRegister}")
+                End If
+            End Sub
+
+            Public Overrides Function Equals(obj As Object) As Boolean
+                Return Rd = CType(obj, MemoryReferenceInstructionIndirect).Rd AndAlso
+                Rn = CType(obj, MemoryReferenceInstructionIndirect).Rn AndAlso
+                offset = CType(obj, MemoryReferenceInstructionIndirect).offset
+            End Function
+
+        End Class
+
+        Class LoadInstructionIndirect
+            Inherits MemoryReferenceInstructionIndirect
+
+            Sub New(toRegister As Integer, indexRegister As Integer)
+                MyBase.New(toRegister, indexRegister)
+            End Sub
+
+            Public Overrides Sub Execute(r As Registers, m As Memory)
+                If Memory.ValidAddress(r(Rn)) AndAlso TypeOf m(r(Rn)) Is Data Then
+                    r(Rd) = m(r(Rn)).GetValue()
+                Else
+                    Throw New DataException($"Attempt to load indirect from an invalid or non-data location R{Rn} = {r(Rn)}")
+                End If
+            End Sub
+
+            Public Overrides Function ToString() As String
+                Return $"{MyBase.ToString()}LDR  R{Rd}, [R{Rn}]"
+            End Function
+
+            Public Overrides Function Equals(obj As Object) As Boolean
+                Return MyBase.Equals(obj) AndAlso TypeName(obj) = TypeName(Me)
+            End Function
+        End Class
+
+        Class StoreInstructionIndirect
+            Inherits MemoryReferenceInstructionIndirect
+
+            Sub New(fromRegister As Integer, indexRegister As Integer)
+                MyBase.New(fromRegister, indexRegister)
+            End Sub
+
+            Public Overrides Sub Execute(r As Registers, m As Memory)
+                If Memory.ValidAddress(r(Rn)) AndAlso TypeOf m(r(Rn)) Is Data Then
+                    m(r(Rn)).SetValue(r(Rd))
+                Else
+                    Throw New DataException($"Attempt to store indirect into an invalid or non-data location R{Rn} = {r(Rn)}")
+                End If
+            End Sub
+
+            Public Overrides Function Equals(obj As Object) As Boolean
+                Return MyBase.Equals(obj) AndAlso TypeName(obj) = TypeName(Me)
+            End Function
+            ' TODO see if this can be moved up the hierarchy into instruction. Is MyBase dynamic? MyClass/MyBase?
+
+            Public Overrides Function ToString() As String
+                Return $"{MyBase.ToString()}STR  R{Rd}, [R{Rn}]"
             End Function
         End Class
 #End Region

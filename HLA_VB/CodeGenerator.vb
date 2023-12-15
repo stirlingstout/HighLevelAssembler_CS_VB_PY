@@ -27,6 +27,18 @@ Module CodeGenerator
         End If
     End Function
 
+    Function LDRIndirect(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' Rd = MEMORY[Rn]
+        ' 0  1  2    3 45
+        Return New List(Of MemoryLocation)() From {New LoadInstructionIndirect(t(0).r, t(4).r)}
+    End Function
+
+    Function STRIndirect(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
+        ' MEMORY[Rn] = Rd
+        '  0    1 23 4 5
+        Return New List(Of MemoryLocation)() From {New StoreInstructionIndirect(t(5).r, t(2).r)}
+    End Function
+
     Function ArithmeticOperation(t As IEnumerable(Of Token)) As List(Of MemoryLocation)
         ' Rd = Rn ?o ?2
         ' 0  1 2  3  4

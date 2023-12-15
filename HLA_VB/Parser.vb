@@ -8,6 +8,8 @@ Public Class Parser
     Public Shared ReadOnly patterns As New List(Of (pattern As IEnumerable(Of Token), generator As Func(Of List(Of Token), List(Of MemoryLocation)))) From
 {
 ("R0 = MEMORY[?a]".ToTokens(), AddressOf LDRDirect),
+("R0 = MEMORY[R1]".ToTokens(), AddressOf LDRIndirect),
+("MEMORY[R1] = R0".ToTokens(), AddressOf STRIndirect),
 ("MEMORY[?a] = R0".ToTokens(), AddressOf STRDirect),
 ("R0 = R1 ?o ?2".ToTokens(), AddressOf ArithmeticOperation),
 ("R0 = R1 ?i R2".ToTokens(), AddressOf LogicOperation),

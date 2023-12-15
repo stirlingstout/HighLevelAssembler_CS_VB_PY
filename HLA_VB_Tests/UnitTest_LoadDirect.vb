@@ -47,8 +47,22 @@ Namespace HLA_VB_Tests
             End Try
         End Sub
 
+        <TestMethod>
+        Sub TestLoadDirect3()
+            Dim m As Memory
+            Dim r As Registers
+            Dim errors As List(Of String)
+            Const badLocation = 2000
 
+            Dim program = New List(Of String)() From {$"R1 = memory[{badLocation}]", "HALT"}
+            With CompileHLA(program)
+                m = .assembly
+                r = .registers
+                errors = .errorList
+            End With
+            Assert.AreEqual(1, errors.Count)
+            Assert.IsTrue(errors(0).StartsWith($"Invalid address {badLocation}"))
+        End Sub
     End Class
-
 
 End Namespace

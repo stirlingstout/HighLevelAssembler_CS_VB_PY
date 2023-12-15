@@ -10,6 +10,9 @@
     <None Update="BinaryToHexASCII.hla">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="BubbleSort.hla">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Program1.hla">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

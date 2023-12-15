@@ -1,0 +1,52 @@
+﻿' Sort an array of numbers starting at label ARRAY, of length given by contents of ARRAY - 1 labeled LENGTH
+' procedure bubbleSort(A : list of sortable items)
+'     n := length(A)
+'     repeat
+'         swapped := false
+'         for i := 1 to n-1 inclusive do
+'             { if this pair is out of order }
+'             if A[i-1] > A[i] then
+'                 { swap them and remember something changed }
+'                 swap(A[i-1], A[i])
+'                 swapped := true
+'             end if
+'         end for
+'     until not swapped
+' end procedure
+
+Start:	R0 = MEMORY[LENGTH]
+		R0 = R0 - 1
+		REPEAT
+			R1 = 0
+			R2 = 101
+			R3 = 102
+			FOR R6 = 1 TO R0		' Originally had R2 as FOR loop variable!
+				R4 = MEMORY[R2]
+				R5 = MEMORY[R3]
+				IF R4 > R5 THEN
+					MEMORY[R2] = R5
+					MEMORY[R3] = R4
+
+					R1 = 1
+				END IF
+				R2 = R2 + 1
+				R3 = R3 + 1
+			END FOR
+		UNTIL R1 = 0
+		HALT
+
+
+
+		LOCATION 100
+
+LENGTH: DATA 10
+ARRAY:	DATA 9
+		DATA 15
+		DATA 1
+		DATA 456
+		DATA 9
+		DATA 11
+		DATA 5
+		DATA 99
+		DATA 9
+		DATA 0
