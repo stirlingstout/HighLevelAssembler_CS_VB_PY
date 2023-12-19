@@ -213,7 +213,7 @@ Namespace HLA_VB
             For Each word In m.Words()
                 If word.w.HasContents Then
                     Dim display = word.w.ToString().Split(Environment.NewLine)
-                    If display.Count > 1 Then
+                    If display.Length > 1 Then
                         Dim offset = display.Last().Length
                         Console.WriteLine($"{word.Address,4} {(word.w.ToString() + (New String(" ", 30 - offset + 5)))} '{word.w.source}")
                     Else

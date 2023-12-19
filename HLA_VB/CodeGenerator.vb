@@ -180,6 +180,8 @@ Module CodeGenerator
     ' loop when we compile the END FOR
     Private ReadOnly IFStatements As New Stack(Of Integer)
     ' IF statements unusual in that we need to what label we need to generate after the next ELSE IF, ELSE, or END IF
+    Private ReadOnly Structures As New Stack(Of String)
+    ' The top of the stack is the current structure. Used to enforce properly nested structures
 
     Sub ResetStructureTracking()
         REPEATCount = -1
@@ -188,6 +190,7 @@ Module CodeGenerator
         WHILECount = -1
         FORStatements.Clear()
         IFStatements.Clear()
+        Structures.Clear()
     End Sub
 
 #Disable Warning IDE0060 ' Remove unused parameter
@@ -196,6 +199,8 @@ Module CodeGenerator
         ' REPEAT
         ' 0
         REPEATCount += 1
+        Structures.Push("REPEAT")
+
         Return New List(Of Instruction)() From {New Label($"REPEAT{REPEATCount}")}
     End Function
 
@@ -203,9 +208,12 @@ Module CodeGenerator
         ' UNTIL R1 ?o ?2
         ' 0     1  2  3
         REPEATCount -= 1
-
-        Dim destination As String = $"REPEAT{REPEATCount + 1}"
-        Return ComparisonBranchIfFalse(t(1).r, t(2).sym, t(3), "", destination)
+        If Structures.Any() AndAlso Structures.Pop() = "REPEAT" Then
+            Dim destination As String = $"REPEAT{REPEATCount + 1}"
+            Return ComparisonBranchIfFalse(t(1).r, t(2).sym, t(3), "", destination)
+        Else
+            Throw New Exception("REPEAT UNTIL incorrectly nested (or UNTIL without REPEAT)")
+        End If
     End Function
 
     Function FORTOStatement(t As IEnumerable(Of Token)) As List(Of Instruction)
@@ -213,6 +221,7 @@ Module CodeGenerator
         '  0  1  2 3  4  5
         FORCount += 1
         FORStatements.Push((t(1).r, True))
+        Structures.Push("FOR")
         Dim result As New List(Of Instruction)
         If t(3).type = TokenType.Register Then
             result.Add(New MOVRegisterInstruction(t(1).r, t(3).r))
@@ -228,6 +237,7 @@ Module CodeGenerator
         '  0  1  2 3  4      5
         FORCount += 1
         FORStatements.Push((t(1).r, False))
+        Structures.Push("FOR")
         Dim result As New List(Of Instruction)
         If t(3).type = TokenType.Register Then
             result.Add(New MOVRegisterInstruction(t(1).r, t(3).r))
@@ -244,19 +254,23 @@ Module CodeGenerator
         FORCount -= 1
         Dim ChangeIndex As ArithmeticLogicInstruction
         Dim f As (rd As Integer, Incrementing As Boolean)
-        If FORStatements.TryPop(f) Then
-            With f
-                If .Incrementing Then
-                    ChangeIndex = New ADDImmediateInstruction(.rd, .rd, 1)
-                Else
-                    ChangeIndex = New SUBImmediateInstruction(.rd, .rd, 1)
-                End If
-            End With
-            Return New List(Of Instruction)() From {ChangeIndex,
-                                                   New BInstruction($"FOR{FORCount + 1}"),
-                                                   New Label($"ENDFOR{FORCount + 1}")}
+        If Structures.Any() AndAlso Structures.Pop() = "FOR" Then
+            If FORStatements.TryPop(f) Then
+                With f
+                    If .Incrementing Then
+                        ChangeIndex = New ADDImmediateInstruction(.rd, .rd, 1)
+                    Else
+                        ChangeIndex = New SUBImmediateInstruction(.rd, .rd, 1)
+                    End If
+                End With
+                Return New List(Of Instruction)() From {ChangeIndex,
+                                                       New BInstruction($"FOR{FORCount + 1}"),
+                                                       New Label($"ENDFOR{FORCount + 1}")}
+            Else
+                Throw New Exception($"END FOR without a corresponding FOR")
+            End If
         Else
-            Throw New Exception($"END FOR without a corresponding FOR")
+            Throw New Exception("FOR END FOR incorrectly nested (or END FOR without FOR)")
         End If
     End Function
 
@@ -264,6 +278,7 @@ Module CodeGenerator
         ' WHILE R1 ?o ?2
         ' 0     1  2  3
         WHILECount += 1
+        Structures.Push("WHILE")
         Dim start = $"WHILE{WHILECount}", finish = $"ENDWHILE{WHILECount}"
 
         Return ComparisonBranchIfFalse(t(1).r, t(2).sym, t(3), start, finish)
@@ -275,8 +290,12 @@ Module CodeGenerator
         ' END WHILE
         '   0   1
         WHILECount -= 1
-        Return New List(Of Instruction)() From {New BInstruction($"WHILE{WHILECount + 1}"),
+        If Structures.Any() AndAlso Structures.Pop() = "WHILE" Then
+            Return New List(Of Instruction)() From {New BInstruction($"WHILE{WHILECount + 1}"),
                                                    New Label($"ENDWHILE{WHILECount + 1}")}
+        Else
+            Throw New Exception("WHILE END WHILE incorrectly nested (or END WHILE without WHILE)")
+        End If
     End Function
 
     Function IFStatement(t As IEnumerable(Of Token)) As List(Of Instruction)
@@ -284,6 +303,7 @@ Module CodeGenerator
         ' 0  1  2  3  4
         IFCount += 1
         IFStatements.Push(0) ' Top of stack holds the integer to be used in the next label after ELSE IF, ELSE, or END IF
+        Structures.Push("IF")
         Dim nextLabel = $"EIF{IFCount}_{IFStatements.Peek()}"
 
         Return ComparisonBranchIfFalse(t(1).r, t(2).sym, t(3), "", nextLabel)
@@ -355,7 +375,7 @@ Module CodeGenerator
     Function ELSEIFStatement(t As IEnumerable(Of Token)) As List(Of Instruction)
         ' ELSE IF R1 ?o ?2 THEN
         ' 0    1  2  3  4  5
-        If IFStatements.Any() Then
+        If IFStatements.Any() AndAlso Structures.Any() AndAlso Structures.Peek() = "IF" Then ' Note Peek not Pop
             Dim IFBlockNumber = IFStatements.Pop()
             IFStatements.Push(IFBlockNumber + 1)
             Dim b = New BInstruction($"EIF{IFCount}") ' branch after the THEN block has executed
@@ -371,7 +391,7 @@ Module CodeGenerator
 #Enable Warning IDE0060 ' Remove unused parameter
         ' ELSE
         ' 0
-        If IFStatements.Any() Then
+        If IFStatements.Any() AndAlso Structures.Any() AndAlso Structures.Peek() = "IF" Then ' Note Peek not Pop again
             Dim IFBlockNumber = IFStatements.Pop()
             IFStatements.Push(IFBlockNumber + 1)
             Return New List(Of Instruction) From {New BInstruction($"EIF{IFCount}"), New Label($"EIF{IFCount}_{IFBlockNumber}")}
@@ -385,7 +405,7 @@ Module CodeGenerator
 #Enable Warning IDE0060 ' Remove unused parameter
         ' END IF
         '  0  1
-        If IFStatements.Any() Then
+        If IFStatements.Any() AndAlso Structures.Any() AndAlso Structures.Pop() = "IF" Then
             Dim IFBlockNumber = IFStatements.Pop()
             Return New List(Of Instruction)() From {New Label($"EIF{IFCount}_{IFBlockNumber}"), New Label($"EIF{IFCount}")}
         Else
