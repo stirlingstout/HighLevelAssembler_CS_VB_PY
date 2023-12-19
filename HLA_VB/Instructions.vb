@@ -255,7 +255,7 @@ Namespace HLA_VB
                         soFar += Environment.NewLine + New String(" ", 5) + (labels(l) + ":").PadRight(MEMORY_LABEL_WIDTH) + " "
                     Next
                     Return soFar
-                    ' TODO: the 5 spaces in the If function are the width of the address plus a space (see DisplayAssembly). Inelegant and doesn't work for multiple labels
+                    ' TODO: the 5 spaces in the If function are the width of the address plus a space (see DisplayAssembly). Inelegant!
                 End If
             End Function
 
