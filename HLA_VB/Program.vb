@@ -212,8 +212,16 @@ Namespace HLA_VB
             Debug.Assert(m IsNot Nothing)
             For Each word In m.Words()
                 If word.w.HasContents Then
-                    Console.WriteLine($"{word.Address,4} {word.w,-30} '{word.w.source}")
+                    Dim display = word.w.ToString().Split(Environment.NewLine)
+                    If display.Count > 1 Then
+                        Dim offset = display.Last().Length
+                        Console.WriteLine($"{word.Address,4} {(word.w.ToString() + (New String(" ", 30 - offset + 5)))} '{word.w.source}")
+                    Else
+                        Dim offset = display.Last().Length
+                        Console.WriteLine($"{word.Address,4} {word.w,-30} '{word.w.source}")
+                    End If
                 End If
+
             Next
         End Sub
 

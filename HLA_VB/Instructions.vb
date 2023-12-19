@@ -243,11 +243,19 @@ Namespace HLA_VB
             End Function
 
             Public Overrides Function ToString() As String
+                Return LabelDisplay()
+            End Function
+
+            Function LabelDisplay() As String
                 If labels.Count = 0 Then
                     Return $"{String.Empty,-10} " ' Note space at end
                 Else
-                    Return String.Join(Environment.NewLine, labels.Select(Function(label, index) If(index > 0, "     ", "") + (label + ":").PadRight(10))) + " "
-                    ' TODO: the 5 spaces in the If function are the width of the address plus a space (see DisplayAssembly)
+                    Dim soFar = $"{(labels(0) + ":"),-10} "
+                    For l = 1 To labels.Count - 1
+                        soFar += Environment.NewLine + New String(" ", 5) + (labels(l) + ":").PadRight(MEMORY_LABEL_WIDTH) + " "
+                    Next
+                    Return soFar
+                    ' TODO: the 5 spaces in the If function are the width of the address plus a space (see DisplayAssembly). Inelegant and doesn't work for multiple labels
                 End If
             End Function
 
