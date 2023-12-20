@@ -108,6 +108,7 @@ Namespace HLA_VB
 
 
             ResetStructureTracking()
+            Scanner.Scanner.ClearAliases()
 
             Dim labels As New List(Of String) ' Needs to be outside loop since we delay emitting a label sometimes (see END FOR code generation)
             For Each line In program
@@ -162,6 +163,10 @@ Namespace HLA_VB
                                                 Else
                                                     Throw New Exception($"Attempt made to move the deposit location backward from {depositLocation} to { .Location}")
                                                 End If
+                                            End With
+                                        Case "Alias"
+                                            With CType(instruction, [Alias])
+                                                Scanner.Scanner.AddAlias(.Name.ToUpper(), .Value)
                                             End With
                                     End Select
                                 End If

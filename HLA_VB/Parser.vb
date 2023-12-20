@@ -36,6 +36,7 @@ Public Class Parser
 ("END IF".ToTokens(), AddressOf ENDIFStatement),
 ("EXECUTE ?a".ToTokens(), AddressOf StartPseudoOperation),
 ("LOCATION 100".ToTokens(), AddressOf LocationPseudoOperation),
+("ALIAS ?i = ?.".ToTokens(), AddressOf ALIASPseudoOperation),
 ("CALL ?a".ToTokens(), AddressOf CALLStatement),
 ("END PROCEDURE".ToTokens(), AddressOf ENDPROCEDUREStatement),
 ("PROCEDURE Start".ToTokens(), AddressOf PROCEDUREDeclaration)

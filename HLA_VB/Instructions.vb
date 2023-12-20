@@ -431,6 +431,21 @@ Namespace HLA_VB
             End Sub
         End Class
 
+        ''' <summary>
+        ''' Allows the programmer to define a name for a constant, register, or symbol
+        ''' </summary>
+        Class [Alias]
+            Inherits PseudoOperation
+
+            Public Property Name As String
+            Public Property Value As Token
+
+            Sub New(name As String, value As Token)
+                Me.Name = name
+                Me.Value = value
+            End Sub
+        End Class
+
 #End Region
 
         MustInherit Class Instruction

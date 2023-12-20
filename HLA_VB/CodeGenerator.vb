@@ -441,6 +441,12 @@ Module CodeGenerator
         Return New List(Of Instruction)() From {New Location(t(1).i)}
     End Function
 
+    Function ALIASPseudoOperation(t As IEnumerable(Of Token)) As List(Of Instruction)
+        ' ALIAS V = R1
+        '   0   1 2 3
+        Return New List(Of Instruction)() From {New [Alias](t(1).id, t(3))}
+    End Function
+
 #End Region
 
 #Region "Call and return"

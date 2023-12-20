@@ -34,6 +34,8 @@ Namespace HLA_VB
             [ELSE]
             [LOCATION]
             [EXECUTE]
+            [ALIAS]
+            [CALL]
             [PROCEDURE]
             [RETURN]
         End Enum
@@ -116,8 +118,11 @@ Namespace HLA_VB
                                             "ELSE",
                                             "LOCATION",
                                             "EXECUTE",
+                                            "ALIAS",
+                                            "CALL",
                                             "PROCEDURE",
-                                            "RETURN"}
+                                            "RETURN"
+                                            }
 
             Private ReadOnly keywords = New List(Of KeywordType) From
                                             {KeywordType.IF,
@@ -129,7 +134,28 @@ Namespace HLA_VB
                                             KeywordType.REPEAT, KeywordType.UNTIL,
                                             KeywordType.WHILE,
                                             KeywordType.THEN, KeywordType.ELSE,
-                                            KeywordType.LOCATION, KeywordType.EXECUTE}
+                                            KeywordType.LOCATION, KeywordType.EXECUTE, KeywordType.ALIAS,
+                                            KeywordType.CALL, KeywordType.PROCEDURE, KeywordType.RETURN}
+
+            Public Shared ReadOnly Aliases As New Dictionary(Of String, Token)
+
+            Public Shared Sub ClearAliases()
+                Aliases.Clear()
+            End Sub
+
+            Public Shared Sub AddAlias(name As String, value As Token)
+                If Aliases.TryAdd(name, value) Then
+                Else
+                    Throw New Exception($"Attempt to add a duplicate of an existing alias {name}")
+                End If
+            End Sub
+
+            Public Shared Sub RemoveAlias(name As String)
+                If Aliases.Remove(name) Then
+                Else
+                    Throw New Exception($"Attempt to remove a missing alias {name}")
+                End If
+            End Sub
 
             Public t As Token
 
@@ -178,6 +204,8 @@ Namespace HLA_VB
                         If Byte.TryParse(identifier.AsSpan(1), r) Then
                             t = New Token(r)
                         End If
+                    ElseIf Aliases.TryGetValue(identifier.ToUpper(), t) Then
+                        Debug.Assert(True)
                     Else
                         t = New Token(identifier.ToUpper(), TokenType.Identifier)
                     End If
@@ -187,7 +215,7 @@ Namespace HLA_VB
                         Case "?"
                             NextCharacter()
                             sym = Char.ToUpper(ch)           ' ?2 matches a register or an integer, ?o matches an operator, ?i matches an identifier
-                            type = TokenType.Wildcard           ' ?a matches an integer or an identifier
+                            type = TokenType.Wildcard           ' ?a matches an integer or an identifier, ?. matches any single token, ?* matches any number of tokens
                             NextCharacter()
                         Case ",", "#", "[", "]", "(", ")", ":"
                             sym = ch
@@ -276,6 +304,10 @@ Namespace HLA_VB
                         result = (first.type = TokenType.Symbol)
                     Case "A" ' either a label or an address
                         result = (first.type = TokenType.Identifier OrElse first.type = TokenType.IntegerLiteral)
+                    Case "." ' any token
+                        result = True
+                    Case "*" ' any number of tokens
+                        result = True ' TODO: this won't completely work since Matches only works on a single token.
                     Case Else
                         Debug.Fail($"Unrecognised wildcard {second.w}")
                 End Select
